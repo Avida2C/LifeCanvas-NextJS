@@ -1,8 +1,6 @@
 "use client";
 
 import {
-  BookOpen,
-  FileText,
   Heart,
   ListTodo,
   PenLine,
@@ -15,15 +13,11 @@ import { useTheme } from "@/components/providers/theme-provider";
 import {
   getAffirmations,
   getFavorites,
-  getJournalEntries,
   getMyQuotes,
-  getNotes,
   getTaskLists,
 } from "@/lib/storage";
 import type {
   Affirmation,
-  JournalEntry,
-  Note,
   Quote,
   TaskList,
   UserCreatedQuote,
@@ -96,8 +90,6 @@ export function SearchView({
 }) {
   const { theme } = useTheme();
   const [query, setQuery] = useState("");
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [journals, setJournals] = useState<JournalEntry[]>([]);
   const [taskLists, setTaskLists] = useState<TaskList[]>([]);
   const [affirmations, setAffirmations] = useState<Affirmation[]>([]);
   const [myQuotes, setMyQuotes] = useState<UserCreatedQuote[]>([]);
@@ -112,17 +104,13 @@ export function SearchView({
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const [n, j, t, aff, mq, favIds] = await Promise.all([
-        getNotes(),
-        getJournalEntries(),
+      const [t, aff, mq, favIds] = await Promise.all([
         getTaskLists(),
         getAffirmations(),
         getMyQuotes(),
         getFavorites(),
       ]);
       if (cancelled) return;
-      setNotes(n);
-      setJournals(j);
       setTaskLists(t);
       setAffirmations(aff);
       setMyQuotes(mq);
@@ -134,32 +122,6 @@ export function SearchView({
   }, []);
 
   const q = query.trim().toLowerCase();
-
-  const filteredNotes = useMemo(() => {
-    if (!q) return [];
-    return notes.filter((n) =>
-      matchesQuery(
-        q,
-        n.title,
-        n.content,
-        ...dateSearchVariants(n.createdAt),
-        ...dateSearchVariants(n.updatedAt),
-      ),
-    );
-  }, [notes, q]);
-
-  const filteredJournals = useMemo(() => {
-    if (!q) return [];
-    return journals.filter((j) =>
-      matchesQuery(
-        q,
-        j.title,
-        j.content,
-        ...dateSearchVariants(j.createdAt),
-        ...dateSearchVariants(j.updatedAt),
-      ),
-    );
-  }, [journals, q]);
 
   const filteredTasks = useMemo(() => {
     if (!q) return [];
@@ -211,8 +173,6 @@ export function SearchView({
   }, [favoriteRows, q]);
 
   const totalHits =
-    filteredNotes.length +
-    filteredJournals.length +
     filteredTasks.length +
     filteredAffirmations.length +
     filteredMyQuotes.length +
@@ -257,7 +217,7 @@ export function SearchView({
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Notes, journals, tasks, affirmations, quotes, authors, dates…"
+          placeholder="Tasks, affirmations, quotes, authors, dates…"
           maxLength={512}
           className="mt-2 w-full rounded-lg border-2 px-3 py-2 text-sm"
           style={{
@@ -272,8 +232,8 @@ export function SearchView({
       <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
         {!q ? (
           <p className="py-8 text-center text-sm" style={{ color: theme.textSecondary }}>
-            Type to search notes, journals, tasks, affirmations, quotes (and
-            authors), saved favorites, and dates (e.g. year or month).
+            Type to search tasks, affirmations, quotes (and authors), saved
+            favorites, and dates (e.g. year or month).
           </p>
         ) : totalHits === 0 ? (
           <p className="py-8 text-center text-sm" style={{ color: theme.textSecondary }}>
@@ -281,76 +241,6 @@ export function SearchView({
           </p>
         ) : (
           <div className="space-y-6">
-            {filteredNotes.length > 0 && (
-              <section>
-                <p
-                  className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide"
-                  style={{ color: theme.textSecondary }}
-                >
-                  <FileText className="size-4" aria-hidden />
-                  Notes
-                </p>
-                <ul className="space-y-1">
-                  {filteredNotes.map((n) => (
-                    <li key={n.id}>
-                      <Link
-                        href={`/note/${n.id}`}
-                        onClick={afterNav}
-                        className="block rounded-lg border-2 px-3 py-2.5 hover:opacity-90"
-                        style={{
-                          borderColor: theme.border,
-                          backgroundColor: theme.card,
-                        }}
-                      >
-                        <p className="font-medium leading-snug">{n.title}</p>
-                        <p
-                          className="mt-0.5 line-clamp-2 text-xs"
-                          style={{ color: theme.textSecondary }}
-                        >
-                          {n.content.replace(/\s+/g, " ").slice(0, 120)}
-                          {n.content.length > 120 ? "…" : ""}
-                        </p>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-            {filteredJournals.length > 0 && (
-              <section>
-                <p
-                  className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide"
-                  style={{ color: theme.textSecondary }}
-                >
-                  <BookOpen className="size-4" aria-hidden />
-                  Journals
-                </p>
-                <ul className="space-y-1">
-                  {filteredJournals.map((j) => (
-                    <li key={j.id}>
-                      <Link
-                        href={`/journal/${j.id}`}
-                        onClick={afterNav}
-                        className="block rounded-lg border-2 px-3 py-2.5 hover:opacity-90"
-                        style={{
-                          borderColor: theme.border,
-                          backgroundColor: theme.card,
-                        }}
-                      >
-                        <p className="font-medium leading-snug">{j.title}</p>
-                        <p
-                          className="mt-0.5 line-clamp-2 text-xs"
-                          style={{ color: theme.textSecondary }}
-                        >
-                          {j.content.replace(/\s+/g, " ").slice(0, 120)}
-                          {j.content.length > 120 ? "…" : ""}
-                        </p>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
             {filteredTasks.length > 0 && (
               <section>
                 <p

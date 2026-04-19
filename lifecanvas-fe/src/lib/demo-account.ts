@@ -7,10 +7,18 @@ import type { UserSettings } from "@/types";
  */
 export const DEMO_ACCOUNT = {
   username: "canvas_explorer",
-  nickname: "Demo Explorer",
+  nickname: "DemoExplorer",
   email: "demo@lifecanvas.app",
   password: "LifeCanvasDemo!",
 } as const;
+
+/** True when saved settings belong to the built-in demo profile (matched by email). */
+export function isDemoUserSettings(
+  settings: { email?: string } | null | undefined,
+): boolean {
+  const e = settings?.email?.trim().toLowerCase();
+  return Boolean(e && e === DEMO_ACCOUNT.email.toLowerCase());
+}
 
 export function isDemoLogin(email: string, password: string): boolean {
   const e = email.trim().toLowerCase();

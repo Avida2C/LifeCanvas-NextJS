@@ -2,7 +2,17 @@
 
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { ChevronRight, Heart, LogOut, PenLine, Scale, Settings, Shield, X } from "lucide-react";
+import {
+  ChevronRight,
+  Heart,
+  ImageUp,
+  LogOut,
+  PenLine,
+  Scale,
+  Settings,
+  Shield,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/components/providers/theme-provider";
@@ -34,6 +44,12 @@ const libraryLinks = [
     title: "Favorites",
     subtitle: "Quotes and affirmations you have hearted",
     Icon: Heart,
+  },
+  {
+    href: "/media",
+    title: "Uploaded Media",
+    subtitle: "Photos and videos in your gallery",
+    Icon: ImageUp,
   },
 ] as const;
 
@@ -163,7 +179,7 @@ export function MoreView({
         <div className="min-w-0 pt-0.5">
           <h1 className="text-[1.35rem] font-bold leading-tight tracking-tight">More</h1>
           <p className="mt-1 text-xs leading-relaxed" style={{ color: theme.textSecondary }}>
-            Theme, account, and legal
+            Library, appearance, account, and legal
           </p>
         </div>
         {onDismiss ? (
@@ -188,6 +204,15 @@ export function MoreView({
         aria-label="More menu"
       >
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto">
+          <section>
+            <SectionLabel theme={theme}>Library</SectionLabel>
+            <MenuCard theme={theme}>
+              {libraryLinks.map(({ href, title, subtitle, Icon }, i) =>
+                rowLink(href, title, subtitle, Icon, href, i > 0),
+              )}
+            </MenuCard>
+          </section>
+
           <section>
             <SectionLabel theme={theme}>Appearance</SectionLabel>
             <MenuCard theme={theme}>
@@ -259,15 +284,6 @@ export function MoreView({
             <SectionLabel theme={theme}>Account</SectionLabel>
             <MenuCard theme={theme}>
               {links.map(({ href, title, subtitle, Icon }, i) =>
-                rowLink(href, title, subtitle, Icon, href, i > 0),
-              )}
-            </MenuCard>
-          </section>
-
-          <section>
-            <SectionLabel theme={theme}>Library</SectionLabel>
-            <MenuCard theme={theme}>
-              {libraryLinks.map(({ href, title, subtitle, Icon }, i) =>
                 rowLink(href, title, subtitle, Icon, href, i > 0),
               )}
             </MenuCard>

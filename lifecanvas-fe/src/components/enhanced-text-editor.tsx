@@ -18,6 +18,8 @@ export function EnhancedTextEditor({
   onChange,
   placeholder,
   onImageAdd,
+  /** Next index for `![Image](lcimg:N)` when using onImageAdd (must match images[] order). */
+  nextImageIndex,
   maxLength,
   maxWords,
   showCharCount,
@@ -26,6 +28,7 @@ export function EnhancedTextEditor({
   onChange: (v: string) => void;
   placeholder?: string;
   onImageAdd?: (uri: string) => void;
+  nextImageIndex?: number;
   maxLength?: number;
   maxWords?: number;
   showCharCount?: boolean;
@@ -80,7 +83,10 @@ export function EnhancedTextEditor({
       const reader = new FileReader();
       reader.onload = () => {
         const dataUrl = reader.result as string;
-        const line = `\n![image](${dataUrl})\n`;
+        const line =
+          onImageAdd != null
+            ? `\n![Image](lcimg:${nextImageIndex ?? 0})\n`
+            : `\n![image](${dataUrl})\n`;
         const { start, end } = sel;
         const before = value.slice(0, start);
         const after = value.slice(end);

@@ -4,6 +4,7 @@ import {
   AlertCircle,
   Check,
   ExternalLink,
+  Folder,
   FolderPlus,
   ImagePlus,
   Loader2,
@@ -11,14 +12,21 @@ import {
   Save,
   Settings2,
   Trash2,
+  User,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ConfirmDeleteMediaDialog } from "@/components/confirm-delete-media-dialog";
 import { ScreenHeader } from "@/components/screen-header";
 import { useTheme } from "@/components/providers/theme-provider";
 import { MediaPreviewModal } from "@/components/media-preview-modal";
-import { fileToGalleryDataUrl, isVideoDataUrl, newGalleryPhotoId } from "@/lib/media-utils";
+import {
+  fileToGalleryDataUrl,
+  imageDataUrlToAvatarDataUrl,
+  isVideoDataUrl,
+  newGalleryPhotoId,
+} from "@/lib/media-utils";
 import { subscribePhotosChanged } from "@/lib/photos-idb";
 import {
   createAlbum,
@@ -26,7 +34,9 @@ import {
   deletePhoto,
   getAlbums,
   getPhotos,
+  getUserSettings,
   savePhoto,
+  saveUserSettings,
   updateAlbum,
   updatePhoto,
 } from "@/lib/storage";
@@ -63,6 +73,13 @@ export function MediaView() {
     | { variant: "saving" | "success" | "error"; message: string }
   >(null);
   const albumBannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [profilePhotoBusy, setProfilePhotoBusy] = useState(false);
+  const [confirmDeletePhotoOpen, setConfirmDeletePhotoOpen] = useState(false);
+  const [albumDeleteTarget, setAlbumDeleteTarget] = useState<Album | null>(null);
+  const [profileRef, setProfileRef] = useState<{
+    avatarDataUrl?: string;
+    avatarGalleryPhotoId?: string;
+  } | null>(null);
 
   const clearAlbumBannerTimer = useCallback(() => {
     if (albumBannerTimerRef.current) {
@@ -95,10 +112,62 @@ export function MediaView() {
   );
 
   const load = useCallback(async () => {
-    const [p, a] = await Promise.all([getPhotos(), getAlbums()]);
+    const [p, a, settings] = await Promise.all([
+      getPhotos(),
+      getAlbums(),
+      getUserSettings(),
+    ]);
     setPhotos(p);
     setAlbums(a);
+    setProfileRef(
+      settings
+        ? {
+            avatarDataUrl: settings.avatarDataUrl,
+            avatarGalleryPhotoId: settings.avatarGalleryPhotoId,
+          }
+        : null,
+    );
   }, []);
+
+  const isPhotoUsedAsProfile = useCallback(
+    (p: Photo) =>
+      Boolean(
+        profileRef &&
+          ((profileRef.avatarGalleryPhotoId &&
+            p.id === profileRef.avatarGalleryPhotoId) ||
+            (profileRef.avatarDataUrl && p.uri === profileRef.avatarDataUrl)),
+      ),
+    [profileRef],
+  );
+
+  const useModalAsProfilePhoto = useCallback(async () => {
+    if (!modal) return;
+    if (isVideoDataUrl(modal.uri)) return;
+    setProfilePhotoBusy(true);
+    try {
+      const settings = await getUserSettings();
+      if (!settings) {
+        alert("Sign in to set a profile photo.");
+        return;
+      }
+      const dataUrl = await imageDataUrlToAvatarDataUrl(modal.uri);
+      await saveUserSettings({
+        ...settings,
+        avatarDataUrl: dataUrl,
+        avatarGalleryPhotoId: modal.id,
+      });
+      setProfileRef({
+        avatarDataUrl: dataUrl,
+        avatarGalleryPhotoId: modal.id,
+      });
+      setModal(null);
+      setDetailsEditing(false);
+    } catch {
+      alert("Could not use this image as your profile photo.");
+    } finally {
+      setProfilePhotoBusy(false);
+    }
+  }, [modal]);
 
   useEffect(() => {
     void load();
@@ -117,6 +186,10 @@ export function MediaView() {
   useEffect(() => {
     return () => clearAlbumBannerTimer();
   }, [clearAlbumBannerTimer]);
+
+  useEffect(() => {
+    if (!modal) setConfirmDeletePhotoOpen(false);
+  }, [modal]);
 
   const pickFiles = () => {
     const input = document.createElement("input");
@@ -166,15 +239,10 @@ export function MediaView() {
     void load();
   };
 
-  const removePhoto = async () => {
+  const executeDeletePhoto = async () => {
     if (!modal) return;
-    if (
-      !confirm(
-        "Delete this photo or video from your library? This cannot be undone.",
-      )
-    )
-      return;
     await deletePhoto(modal.id);
+    setConfirmDeletePhotoOpen(false);
     setModal(null);
     setDetailsEditing(false);
     void load();
@@ -217,14 +285,11 @@ export function MediaView() {
     }
   };
 
-  const removeAlbumFromManage = async (a: Album) => {
-    if (
-      !confirm(
-        `Delete album "${a.name}"? Photos and videos stay in All photos & videos.`,
-      )
-    )
-      return;
+  const executeDeleteAlbum = async () => {
+    const a = albumDeleteTarget;
+    if (!a) return;
     await deleteAlbum(a.id);
+    setAlbumDeleteTarget(null);
     setAlbumDrafts((prev) => {
       const n = { ...prev };
       delete n[a.id];
@@ -332,10 +397,15 @@ export function MediaView() {
                       )
                     ) : (
                       <div
-                        className="flex size-full items-center justify-center text-4xl"
+                        className="flex size-full items-center justify-center"
                         style={{ backgroundColor: theme.surface }}
                       >
-                        📁
+                        <Folder
+                          className="size-8"
+                          strokeWidth={1.5}
+                          style={{ color: theme.textSecondary }}
+                          aria-hidden
+                        />
                       </div>
                     )}
                   </div>
@@ -355,31 +425,46 @@ export function MediaView() {
           All photos & videos
         </p>
         <div className="grid grid-cols-4 gap-0.5">
-          {photos.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className="aspect-square overflow-hidden"
-              onClick={() => openModal(p)}
-            >
-              {isVideoDataUrl(p.uri) ? (
-                <video
-                  src={p.uri}
-                  className="size-full object-cover"
-                  muted
-                  playsInline
-                  preload="metadata"
-                  controlsList="nodownload"
-                  draggable={false}
-                  onContextMenu={(e) => e.preventDefault()}
-                  aria-hidden
-                />
-              ) : (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img src={p.uri} alt="" className="size-full object-cover" />
-              )}
-            </button>
-          ))}
+          {photos.map((p) => {
+            const profilePic = isPhotoUsedAsProfile(p);
+            return (
+              <button
+                key={p.id}
+                type="button"
+                className="relative aspect-square overflow-hidden"
+                onClick={() => openModal(p)}
+                aria-label={
+                  profilePic ? "Open photo (profile picture)" : "Open photo"
+                }
+              >
+                {isVideoDataUrl(p.uri) ? (
+                  <video
+                    src={p.uri}
+                    className="size-full object-cover"
+                    muted
+                    playsInline
+                    preload="metadata"
+                    controlsList="nodownload"
+                    draggable={false}
+                    onContextMenu={(e) => e.preventDefault()}
+                    aria-hidden
+                  />
+                ) : (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={p.uri} alt="" className="size-full object-cover" />
+                )}
+                {profilePic ? (
+                  <span
+                    className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center gap-0.5 bg-black/70 py-0.5 text-[0.6rem] font-bold leading-none text-white"
+                    aria-hidden
+                  >
+                    <User className="size-2.5 shrink-0" strokeWidth={2.5} />
+                    Profile
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
         </div>
         {photos.length === 0 && (
           <p className="py-12 text-center text-sm" style={{ color: theme.textSecondary }}>
@@ -452,10 +537,15 @@ export function MediaView() {
                           )
                         ) : (
                           <div
-                            className="flex size-full items-center justify-center text-2xl"
+                            className="flex size-full items-center justify-center"
                             style={{ backgroundColor: theme.surface }}
                           >
-                            📁
+                            <Folder
+                              className="size-7"
+                              strokeWidth={1.5}
+                              style={{ color: theme.textSecondary }}
+                              aria-hidden
+                            />
                           </div>
                         )}
                       </div>
@@ -551,7 +641,7 @@ export function MediaView() {
                       <button
                         type="button"
                         title="Delete album"
-                        onClick={() => void removeAlbumFromManage(a)}
+                        onClick={() => setAlbumDeleteTarget(a)}
                         className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-red-500 px-2 py-1.5 text-xs font-medium text-white sm:gap-1.5 sm:px-2.5 sm:text-sm"
                       >
                         <Trash2 className="size-3.5 shrink-0 sm:size-4" aria-hidden />
@@ -566,6 +656,60 @@ export function MediaView() {
           </div>
         </div>
       )}
+
+      <ConfirmDeleteMediaDialog
+        theme={theme}
+        open={confirmDeletePhotoOpen && !!modal}
+        photo={modal}
+        onCancel={() => setConfirmDeletePhotoOpen(false)}
+        onConfirm={() => void executeDeletePhoto()}
+      />
+
+      {albumDeleteTarget ? (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-delete-album-title"
+          onClick={() => setAlbumDeleteTarget(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl border-2 p-4 shadow-xl"
+            style={{ backgroundColor: theme.card, borderColor: theme.border }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p id="confirm-delete-album-title" className="font-bold" style={{ color: theme.text }}>
+              Delete album?
+            </p>
+            <p className="mt-2 text-sm leading-relaxed" style={{ color: theme.textSecondary }}>
+              Delete album &quot;{albumDeleteTarget.name}&quot;? Photos and videos stay in All photos
+              and videos.
+            </p>
+            <div
+              className="mt-4 flex flex-nowrap justify-end gap-2 border-t pt-3"
+              style={{ borderColor: theme.divider }}
+            >
+              <button
+                type="button"
+                onClick={() => setAlbumDeleteTarget(null)}
+                className="inline-flex min-w-0 items-center justify-center gap-1 rounded-lg border-2 px-3 py-2 text-sm font-medium"
+                style={{ borderColor: theme.border, color: theme.text }}
+              >
+                <X className="size-4 shrink-0" aria-hidden />
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void executeDeleteAlbum()}
+                className="inline-flex min-w-0 items-center justify-center gap-1 rounded-lg bg-red-500 px-3 py-2 text-sm font-medium text-white"
+              >
+                <Trash2 className="size-4 shrink-0" aria-hidden />
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {showAlbum && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4">
@@ -617,6 +761,7 @@ export function MediaView() {
           name={name}
           desc={desc}
           detailsVisible={detailsEditing}
+          isProfilePicture={isPhotoUsedAsProfile(modal)}
           onClose={() => {
             setModal(null);
             setDetailsEditing(false);
@@ -624,6 +769,10 @@ export function MediaView() {
           onNameChange={setName}
           onDescChange={setDesc}
           onSaveDetails={() => void saveDetails()}
+          onUseAsProfilePhoto={
+            !isVideoDataUrl(modal.uri) ? useModalAsProfilePhoto : undefined
+          }
+          useAsProfilePhotoPending={profilePhotoBusy}
           actions={
             <>
               <button
@@ -638,7 +787,7 @@ export function MediaView() {
               <div className="flex min-w-0 flex-nowrap gap-1">
                 <button
                   type="button"
-                  onClick={() => void removePhoto()}
+                  onClick={() => setConfirmDeletePhotoOpen(true)}
                   className="inline-flex min-w-0 flex-1 items-center justify-center gap-1 rounded-lg bg-red-500 py-2 text-sm font-medium text-white"
                 >
                   <Trash2 className="size-4 shrink-0" aria-hidden />

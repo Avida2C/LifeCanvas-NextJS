@@ -3,6 +3,7 @@
 import { Pencil, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { DestructiveConfirmDialog } from "@/components/destructive-confirm-dialog";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { ScreenHeader } from "@/components/screen-header";
 import { useTheme } from "@/components/providers/theme-provider";
@@ -13,6 +14,7 @@ export function NoteDetailView({ id }: { id: string }) {
   const { theme } = useTheme();
   const router = useRouter();
   const [note, setNote] = useState<Note | null | undefined>(undefined);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -52,11 +54,7 @@ export function NoteDetailView({ id }: { id: string }) {
           {
             icon: Trash2,
             label: "Delete",
-            onClick: async () => {
-              if (!confirm("Delete this note?")) return;
-              await deleteNote(id);
-              router.back();
-            },
+            onClick: () => setDeleteConfirmOpen(true),
           },
         ]}
       />
@@ -72,9 +70,24 @@ export function NoteDetailView({ id }: { id: string }) {
           className="border-2 p-4"
           style={{ borderColor: theme.border, backgroundColor: theme.card }}
         >
-          <MarkdownRenderer content={note.content} />
+          <MarkdownRenderer content={note.content} imageSources={note.images} />
         </div>
       </div>
+
+      <DestructiveConfirmDialog
+        theme={theme}
+        open={deleteConfirmOpen}
+        titleId="confirm-delete-note-title"
+        title="Delete this note?"
+        onCancel={() => setDeleteConfirmOpen(false)}
+        onConfirm={async () => {
+          await deleteNote(id);
+          setDeleteConfirmOpen(false);
+          router.back();
+        }}
+      >
+        This note will be permanently removed. This cannot be undone.
+      </DestructiveConfirmDialog>
     </div>
   );
 }

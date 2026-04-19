@@ -58,10 +58,13 @@ function parseInlineFormatting(
 
 export function MarkdownRenderer({
   content,
+  imageSources,
   className,
   style,
 }: {
   content: string;
+  /** Data URLs (or https) for placeholders `![alt](lcimg:0)` in content. */
+  imageSources?: string[];
   className?: string;
   style?: CSSProperties;
 }) {
@@ -75,6 +78,46 @@ export function MarkdownRenderer({
   lines.forEach((line) => {
     if (line.trim() === "") {
       blocks.push(<div key={key++} className="h-4" />);
+      return;
+    }
+
+    const trimmed = line.trim();
+    const lcImg = trimmed.match(/^!\[([^\]]*)\]\(lcimg:(\d+)\)\s*$/);
+    if (lcImg) {
+      const altText = lcImg[1];
+      const idx = Number.parseInt(lcImg[2], 10);
+      const src = imageSources?.[idx];
+      if (src) {
+        blocks.push(
+          <figure key={key++} className="my-2 flex flex-col items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={src}
+              alt={altText || "Image"}
+              className="max-h-[min(420px,70vh)] w-full max-w-full rounded-lg border-2 object-contain"
+              style={{ borderColor: theme.border }}
+            />
+            {altText ? (
+              <figcaption
+                className="mt-1 text-center text-xs italic"
+                style={{ color: theme.textSecondary }}
+              >
+                {altText}
+              </figcaption>
+            ) : null}
+          </figure>,
+        );
+      } else {
+        blocks.push(
+          <p
+            key={key++}
+            className="mb-1 text-sm italic"
+            style={{ color: theme.textSecondary }}
+          >
+            [Image unavailable]
+          </p>,
+        );
+      }
       return;
     }
     if (line.startsWith("# ")) {
@@ -125,7 +168,8 @@ export function MarkdownRenderer({
       );
       return;
     }
-    const imageMatch = line.match(/!\[([^\]]*)\]\(([^)]+)\)/);
+    /** Legacy / fallback: `![alt](url)` where url may contain `)` (e.g. SVG data URLs). */
+    const imageMatch = trimmed.match(/^!\[([^\]]*)\]\((.+)\)\s*$/);
     if (imageMatch) {
       const [, altText, imageUrl] = imageMatch;
       blocks.push(
@@ -134,7 +178,7 @@ export function MarkdownRenderer({
           <img
             src={imageUrl}
             alt={altText || "Image"}
-            className="max-h-[200px] w-full rounded-lg border-2 object-cover"
+            className="max-h-[min(420px,70vh)] w-full max-w-full rounded-lg border-2 object-contain"
             style={{ borderColor: theme.border }}
           />
           {altText ? (

@@ -1,11 +1,11 @@
 "use client";
 
 import { X } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ScreenHeader } from "@/components/screen-header";
 import { useTheme } from "@/components/providers/theme-provider";
 import { parseAccentId } from "@/lib/theme";
+import { DEMO_ACCOUNT, isDemoUserSettings } from "@/lib/demo-account";
 import { getUserSettings, saveUserSettings } from "@/lib/storage";
 import type { UserSettings } from "@/types";
 
@@ -49,19 +49,19 @@ export function SettingsView() {
   }, []);
 
   const saveProfile = async () => {
+    if (isDemoUserSettings(settings)) return;
     const nickname = (settings.nickname ?? settings.name).trim();
     if (!nickname) {
       alert("Please enter a nickname / display name");
       return;
     }
     setLoading(true);
-    const username = settings.username?.trim() || undefined;
     const email = settings.email?.trim() || undefined;
     const next: UserSettings = {
       ...settings,
       name: nickname,
       nickname,
-      username,
+      username: settings.username?.trim() || undefined,
       email,
       accentColor: accentId,
     };
@@ -86,6 +86,19 @@ export function SettingsView() {
       t.value.toLowerCase().includes(tzSearch.toLowerCase()),
   );
 
+  const isDemo = isDemoUserSettings(settings);
+  const nicknameDisplay = isDemo
+    ? DEMO_ACCOUNT.nickname
+    : (settings.nickname ?? settings.name);
+  const editableFieldClass = "mt-1 w-full rounded-lg border px-3 py-2";
+  const readOnlyFieldClass = `${editableFieldClass} cursor-default`;
+
+  const mutedFieldStyle = {
+    borderColor: theme.divider,
+    backgroundColor: theme.background,
+    color: theme.text,
+  } as const;
+
   return (
     <div className="flex min-h-full flex-col" style={{ backgroundColor: theme.background }}>
       <ScreenHeader title="Settings" theme={theme} />
@@ -97,60 +110,80 @@ export function SettingsView() {
           <h2 className="font-bold" style={{ color: theme.text }}>
             Personal
           </h2>
+          {isDemo ? (
+            <p className="mt-2 text-xs leading-relaxed" style={{ color: theme.textSecondary }}>
+              Demo account: username, email, and nickname cannot be changed.
+            </p>
+          ) : null}
           <label className="mt-2 block text-sm" style={{ color: theme.textSecondary }}>
             Username
           </label>
           <input
             value={settings.username ?? ""}
-            onChange={(e) => setSettings({ ...settings, username: e.target.value })}
-            className="mt-1 w-full rounded-lg border-2 px-3 py-2"
+            readOnly
+            aria-readonly="true"
+            placeholder="Not set"
+            className={readOnlyFieldClass}
             style={{
-              borderColor: theme.border,
-              backgroundColor: theme.surface,
-              color: theme.text,
+              ...mutedFieldStyle,
+              color: settings.username ? theme.text : theme.textSecondary,
             }}
             autoComplete="username"
           />
-          <label className="mt-3 block text-sm" style={{ color: theme.textSecondary }}>
-            Nickname
-          </label>
-          <input
-            value={settings.nickname ?? settings.name}
-            onChange={(e) =>
-              setSettings({ ...settings, nickname: e.target.value, name: e.target.value })
-            }
-            className="mt-1 w-full rounded-lg border-2 px-3 py-2"
-            style={{
-              borderColor: theme.border,
-              backgroundColor: theme.surface,
-              color: theme.text,
-            }}
-            autoComplete="nickname"
-          />
+          {!isDemo ? (
+            <p className="mt-1 text-xs" style={{ color: theme.textSecondary }}>
+              Usernames cannot be changed after signup.
+            </p>
+          ) : null}
           <label className="mt-3 block text-sm" style={{ color: theme.textSecondary }}>
             Email
           </label>
           <input
             type="email"
             value={settings.email ?? ""}
-            onChange={(e) => setSettings({ ...settings, email: e.target.value })}
-            className="mt-1 w-full rounded-lg border-2 px-3 py-2"
-            style={{
-              borderColor: theme.border,
-              backgroundColor: theme.surface,
-              color: theme.text,
-            }}
+            readOnly={isDemo}
+            aria-readonly={isDemo}
+            onChange={
+              isDemo
+                ? undefined
+                : (e) => setSettings({ ...settings, email: e.target.value })
+            }
+            className={isDemo ? readOnlyFieldClass : editableFieldClass}
+            style={mutedFieldStyle}
             autoComplete="email"
           />
-          <button
-            type="button"
-            disabled={loading}
-            onClick={() => void saveProfile()}
-            className="mt-2 rounded-lg px-4 py-2 font-semibold text-white disabled:opacity-50"
-            style={{ backgroundColor: theme.primary }}
-          >
-            Save
-          </button>
+          <label className="mt-3 block text-sm" style={{ color: theme.textSecondary }}>
+            Nickname
+          </label>
+          <input
+            value={nicknameDisplay}
+            readOnly={isDemo}
+            aria-readonly={isDemo}
+            onChange={
+              isDemo
+                ? undefined
+                : (e) =>
+                    setSettings({
+                      ...settings,
+                      nickname: e.target.value,
+                      name: e.target.value,
+                    })
+            }
+            className={isDemo ? readOnlyFieldClass : editableFieldClass}
+            style={mutedFieldStyle}
+            autoComplete="nickname"
+          />
+          {!isDemo ? (
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => void saveProfile()}
+              className="mt-2 rounded-lg px-4 py-2 font-semibold text-white disabled:opacity-50"
+              style={{ backgroundColor: theme.primary }}
+            >
+              Save
+            </button>
+          ) : null}
           {settings.memberSince && (
             <p className="mt-2 text-xs italic" style={{ color: theme.textSecondary }}>
               Member since {settings.memberSince}
@@ -172,24 +205,6 @@ export function SettingsView() {
           </div>
           <span style={{ color: theme.textSecondary }}>›</span>
         </button>
-
-        <Link
-          href="/favorites"
-          className="flex w-full items-center justify-between rounded-lg border-2 p-4"
-          style={{ borderColor: theme.border, backgroundColor: theme.card, color: theme.text }}
-        >
-          <span className="font-medium">Favorite inspirations</span>
-          <span style={{ color: theme.textSecondary }}>›</span>
-        </Link>
-
-        <Link
-          href="/debug"
-          className="flex w-full items-center justify-between rounded-lg border-2 p-4"
-          style={{ borderColor: theme.border, backgroundColor: theme.card, color: theme.text }}
-        >
-          <span className="font-medium">Debug tools</span>
-          <span style={{ color: theme.textSecondary }}>›</span>
-        </Link>
 
         <div
           className="rounded-lg border-2 p-4"

@@ -2,6 +2,7 @@
 
 import { Pencil, Star, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { DestructiveConfirmDialog } from "@/components/destructive-confirm-dialog";
 import { ScreenHeader } from "@/components/screen-header";
 import { useTheme } from "@/components/providers/theme-provider";
 import {
@@ -21,6 +22,10 @@ export function AffirmationsView() {
   const [def, setDef] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<{
+    id: string;
+    text: string;
+  } | null>(null);
 
   const reloadAffirmations = () => {
     void (async () => {
@@ -56,9 +61,10 @@ export function AffirmationsView() {
     reloadAffirmations();
   };
 
-  const del = async (id: string, text: string) => {
-    if (!confirm(`Delete this affirmation?\n${text.slice(0, 80)}`)) return;
-    await deleteAffirmation(id);
+  const confirmDeleteAffirmation = async () => {
+    if (!pendingDelete) return;
+    await deleteAffirmation(pendingDelete.id);
+    setPendingDelete(null);
     reloadAffirmations();
   };
 
@@ -188,7 +194,7 @@ export function AffirmationsView() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => void del(a.id, a.text)}
+                        onClick={() => setPendingDelete({ id: a.id, text: a.text })}
                         className="text-red-500"
                       >
                         <Trash2 className="size-5" />
@@ -201,6 +207,24 @@ export function AffirmationsView() {
           })
         )}
       </div>
+
+      <DestructiveConfirmDialog
+        theme={theme}
+        open={pendingDelete != null}
+        titleId="confirm-delete-affirmation-title"
+        title="Delete this affirmation?"
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => void confirmDeleteAffirmation()}
+      >
+        {pendingDelete ? (
+          <p className="whitespace-pre-wrap break-words">
+            {pendingDelete.text.length > 200
+              ? `${pendingDelete.text.slice(0, 200)}…`
+              : pendingDelete.text}
+          </p>
+        ) : null}
+        <p className="mt-2">This cannot be undone.</p>
+      </DestructiveConfirmDialog>
     </div>
   );
 }

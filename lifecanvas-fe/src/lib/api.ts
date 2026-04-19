@@ -12,7 +12,7 @@ const shuffleArray = <T>(array: T[]): T[] => {
   return shuffled;
 };
 
-/** Drop duplicate quotes (e.g. same text from both APIs). */
+/** Drop duplicate quotes (e.g. repeated lines from the same API). */
 const dedupeQuotesByText = (quotes: Quote[]): Quote[] => {
   const seen = new Set<string>();
   return quotes.filter((q) => {
@@ -21,38 +21,6 @@ const dedupeQuotesByText = (quotes: Quote[]): Quote[] => {
     seen.add(key);
     return true;
   });
-};
-
-const ZENQUOTES_RANDOM = "https://zenquotes.io/api/random";
-
-/** ZenQuotes returns one quote per `/api/random` request; fetch several in parallel. */
-const fetchZenQuotesRandom = async (count: number): Promise<Quote[]> => {
-  const settled = await Promise.allSettled(
-    Array.from({ length: count }, async () => {
-      const response = await fetch(ZENQUOTES_RANDOM, {
-        method: "GET",
-        headers: { Accept: "application/json" },
-      });
-      if (!response.ok) {
-        throw new Error(`ZenQuotes HTTP ${response.status}`);
-      }
-      const data: unknown = await response.json();
-      if (!Array.isArray(data) || !data[0] || typeof data[0] !== "object") {
-        return null;
-      }
-      const row = data[0] as Record<string, unknown>;
-      const quote = String(row.q ?? "").trim();
-      if (!quote) return null;
-      const author = String(row.a ?? "").trim() || "Unknown";
-      return { quote, author } satisfies Quote;
-    }),
-  );
-
-  const out: Quote[] = [];
-  for (const s of settled) {
-    if (s.status === "fulfilled" && s.value) out.push(s.value);
-  }
-  return dedupeQuotesByText(out);
 };
 
 const FALLBACK_QUOTES: Quote[] = [
@@ -96,40 +64,31 @@ const FALLBACK_AFFIRMATIONS: Quote[] = [
 ];
 
 export const fetchQuotes = async (): Promise<Quote[]> => {
-  const [gardenResult, zenQuotes] = await Promise.allSettled([
-    (async () => {
-      const response = await fetch(
-        "https://quote-garden.onrender.com/api/v3/quotes/random?count=15",
-        {
-          method: "GET",
-          headers: { Accept: "application/json" },
-        },
-      );
-      if (!response.ok) {
-        throw new Error(`Quote Garden HTTP ${response.status}`);
-      }
-      const data = await response.json();
-      if (!data?.data || !Array.isArray(data.data)) return [];
-      return data.data.map((item: Record<string, string>) => ({
-        quote: item.quoteText || item.quote || "",
-        author: item.quoteAuthor || item.author || "Unknown",
-      })) as Quote[];
-    })(),
-    fetchZenQuotesRandom(8),
-  ]);
-
-  const fromGarden =
-    gardenResult.status === "fulfilled" ? gardenResult.value : [];
-  const fromZen = zenQuotes.status === "fulfilled" ? zenQuotes.value : [];
-
-  const merged = dedupeQuotesByText([...fromGarden, ...fromZen]).filter(
-    (q) => q.quote.trim().length > 0,
-  );
-
-  if (merged.length > 0) {
-    return shuffleArray(merged);
+  try {
+    const response = await fetch("/api/quote-garden", {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) {
+      return shuffleArray(FALLBACK_QUOTES);
+    }
+    const data = await response.json();
+    if (!data?.data || !Array.isArray(data.data)) {
+      return shuffleArray(FALLBACK_QUOTES);
+    }
+    const fromGarden = data.data.map((item: Record<string, string>) => ({
+      quote: item.quoteText || item.quote || "",
+      author: item.quoteAuthor || item.author || "Unknown",
+    })) as Quote[];
+    const merged = dedupeQuotesByText(fromGarden).filter(
+      (q) => q.quote.trim().length > 0,
+    );
+    if (merged.length > 0) {
+      return shuffleArray(merged);
+    }
+  } catch {
+    // network / parse failure
   }
-
   return shuffleArray(FALLBACK_QUOTES);
 };
 

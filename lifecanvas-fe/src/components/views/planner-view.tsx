@@ -1,12 +1,19 @@
 "use client";
 
 import {
+  BookOpen,
+  Calendar,
   ChevronDown,
   ChevronUp,
+  FileText,
   Filter,
   FilterX,
+  ListChecks,
   Pencil,
+  Repeat,
+  ScrollText,
   Trash2,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -19,6 +26,7 @@ import {
   type ReactNode,
 } from "react";
 import { CustomCalendar, type MarkedDates } from "@/components/custom-calendar";
+import { DestructiveConfirmDialog } from "@/components/destructive-confirm-dialog";
 import { ReminderModal, type ReminderSavePayload } from "@/components/reminder-modal";
 import { useTheme } from "@/components/providers/theme-provider";
 import { getRecurringDates } from "@/lib/planner-utils";
@@ -186,8 +194,6 @@ function PlannerViewInner() {
   );
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const [showAllPast, setShowAllPast] = useState(false);
-  const [noteSearchQuery, setNoteSearchQuery] = useState("");
-  const [journalSearchQuery, setJournalSearchQuery] = useState("");
   const [showFilter, setShowFilter] = useState(false);
   const [filterFromDate, setFilterFromDate] = useState("");
   const [filterToDate, setFilterToDate] = useState("");
@@ -199,6 +205,9 @@ function PlannerViewInner() {
   );
   const [toPickerMonth, setToPickerMonth] = useState(new Date().getMonth());
   const [toPickerYear, setToPickerYear] = useState(new Date().getFullYear());
+  const [taskListPendingDeleteId, setTaskListPendingDeleteId] = useState<
+    string | null
+  >(null);
   useEffect(() => {
     if (!openReminder) return;
     let cancelled = false;
@@ -339,9 +348,10 @@ function PlannerViewInner() {
     await loadData();
   };
 
-  const handleDeleteTaskList = async (id: string) => {
-    if (!confirm("Delete this task list?")) return;
-    await deleteTaskList(id);
+  const confirmDeleteTaskList = async () => {
+    if (!taskListPendingDeleteId) return;
+    await deleteTaskList(taskListPendingDeleteId);
+    setTaskListPendingDeleteId(null);
     await loadData();
   };
 
@@ -420,44 +430,36 @@ function PlannerViewInner() {
     return g;
   }, [sortedReminders]);
 
-  const filteredNotes = useMemo(() => {
-    const q = noteSearchQuery.trim().toLowerCase();
-    let list = notes;
-    if (q) {
-      list = notes.filter(
-        (n) =>
-          n.title.toLowerCase().includes(q) ||
-          (n.content && n.content.toLowerCase().includes(q)),
-      );
-    }
-    return [...list].sort(
-      (a, b) =>
-        new Date(b.updatedAt || b.createdAt).getTime() -
-        new Date(a.updatedAt || a.createdAt).getTime(),
-    );
-  }, [notes, noteSearchQuery]);
+  const sortedNotes = useMemo(
+    () =>
+      [...notes].sort(
+        (a, b) =>
+          new Date(b.updatedAt || b.createdAt).getTime() -
+          new Date(a.updatedAt || a.createdAt).getTime(),
+      ),
+    [notes],
+  );
 
-  const filteredJournals = useMemo(() => {
-    const q = journalSearchQuery.trim().toLowerCase();
-    let list = journals;
-    if (q) {
-      list = journals.filter(
-        (j) =>
-          j.title.toLowerCase().includes(q) ||
-          (j.content && j.content.toLowerCase().includes(q)),
-      );
-    }
-    return [...list].sort(
-      (a, b) =>
-        new Date(b.updatedAt || b.createdAt).getTime() -
-        new Date(a.updatedAt || a.createdAt).getTime(),
-    );
-  }, [journals, journalSearchQuery]);
+  const sortedJournals = useMemo(
+    () =>
+      [...journals].sort(
+        (a, b) =>
+          new Date(b.updatedAt || b.createdAt).getTime() -
+          new Date(a.updatedAt || a.createdAt).getTime(),
+      ),
+    [journals],
+  );
 
   const segmentClass = (tab: PlannerTab) =>
     `flex-1 py-2 text-center text-sm font-semibold ${
       activeTab === tab ? "text-white" : ""
     }`;
+
+  const pendingTaskListLabel =
+    taskListPendingDeleteId == null
+      ? ""
+      : taskLists.find((t) => t.id === taskListPendingDeleteId)?.title?.trim() ||
+        "this list";
 
   return (
     <div
@@ -589,7 +591,10 @@ function PlannerViewInner() {
                         onClick={() => setFilterFromDate("")}
                         style={{ color: theme.primary }}
                       >
-                        {filterFromDate} ✕
+                        <span className="inline-flex items-center gap-1">
+                          {filterFromDate}
+                          <X className="size-3.5 shrink-0" aria-hidden />
+                        </span>
                       </button>
                     ) : (
                       <button
@@ -627,7 +632,10 @@ function PlannerViewInner() {
                         onClick={() => setFilterToDate("")}
                         style={{ color: theme.primary }}
                       >
-                        {filterToDate} ✕
+                        <span className="inline-flex items-center gap-1">
+                          {filterToDate}
+                          <X className="size-3.5 shrink-0" aria-hidden />
+                        </span>
                       </button>
                     ) : (
                       <button
@@ -674,7 +682,21 @@ function PlannerViewInner() {
 
               {sortedReminders.length === 0 ? (
                 <div className="py-12 text-center">
-                  <p className="text-4xl">{reminderView === "upcoming" ? "📅" : "📜"}</p>
+                  <div className="flex justify-center" aria-hidden>
+                    {reminderView === "upcoming" ? (
+                      <Calendar
+                        className="size-14"
+                        strokeWidth={1.25}
+                        style={{ color: theme.textSecondary }}
+                      />
+                    ) : (
+                      <ScrollText
+                        className="size-14"
+                        strokeWidth={1.25}
+                        style={{ color: theme.textSecondary }}
+                      />
+                    )}
+                  </div>
                   <p className="mt-2 font-bold">{reminderView === "upcoming" ? "No upcoming reminders" : "No past reminders"}</p>
                   <p className="mt-1 text-sm" style={{ color: theme.textSecondary }}>
                     {reminderView === "upcoming"
@@ -732,15 +754,18 @@ function PlannerViewInner() {
                               ) : null}
                               {isRecurring ? (
                                 <p
-                                  className="mt-1 text-[11px] italic"
+                                  className="mt-1 flex flex-wrap items-center gap-1 text-[11px] italic"
                                   style={{ color: theme.textSecondary }}
                                 >
-                                  {reminder.repeat === "daily" && "🔁 Daily"}
-                                  {reminder.repeat === "weekly" && "🔁 Weekly"}
-                                  {reminder.repeat === "monthly" && "🔁 Monthly"}
-                                  {reminder.repeat === "yearly" && "🔁 Yearly"}
-                                  {reminder.endDate &&
-                                    ` until ${new Date(reminder.endDate).toLocaleDateString()}`}
+                                  <Repeat className="size-3 shrink-0" aria-hidden />
+                                  <span>
+                                    {reminder.repeat === "daily" && "Daily"}
+                                    {reminder.repeat === "weekly" && "Weekly"}
+                                    {reminder.repeat === "monthly" && "Monthly"}
+                                    {reminder.repeat === "yearly" && "Yearly"}
+                                    {reminder.endDate &&
+                                      ` until ${new Date(reminder.endDate).toLocaleDateString()}`}
+                                  </span>
                                 </p>
                               ) : null}
                             </div>
@@ -832,38 +857,22 @@ function PlannerViewInner() {
           {activeTab === "notes" && (
             <>
               <div
-                className="mb-2 border-2 p-2"
-                style={{ backgroundColor: theme.card, borderColor: theme.border }}
-              >
-                <input
-                  type="search"
-                  placeholder="Search notes..."
-                  value={noteSearchQuery}
-                  onChange={(e) => setNoteSearchQuery(e.target.value)}
-                  className="w-full rounded border-2 px-3 py-2"
-                  style={{
-                    borderColor: theme.border,
-                    backgroundColor: theme.surface,
-                    color: theme.text,
-                  }}
-                />
-              </div>
-              <div
                 className="border-2"
                 style={{ backgroundColor: theme.card, borderColor: theme.border }}
               >
                 {notes.length === 0 ? (
                   <div className="py-16 text-center">
-                    <p className="text-4xl">📝</p>
+                    <div className="flex justify-center" aria-hidden>
+                      <FileText
+                        className="size-14"
+                        strokeWidth={1.25}
+                        style={{ color: theme.textSecondary }}
+                      />
+                    </div>
                     <p className="mt-2 font-bold">No notes yet</p>
                   </div>
-                ) : filteredNotes.length === 0 ? (
-                  <div className="py-16 text-center">
-                    <p className="text-4xl">🔍</p>
-                    <p className="mt-2 font-bold">No matches</p>
-                  </div>
                 ) : (
-                  filteredNotes.map((note) => (
+                  sortedNotes.map((note) => (
                     <Link
                       key={note.id}
                       href={`/note/${note.id}`}
@@ -886,29 +895,18 @@ function PlannerViewInner() {
           {activeTab === "journals" && (
             <>
               <div
-                className="mb-2 border-2 p-2"
-                style={{ backgroundColor: theme.card, borderColor: theme.border }}
-              >
-                <input
-                  type="search"
-                  placeholder="Search journals..."
-                  value={journalSearchQuery}
-                  onChange={(e) => setJournalSearchQuery(e.target.value)}
-                  className="w-full rounded border-2 px-3 py-2"
-                  style={{
-                    borderColor: theme.border,
-                    backgroundColor: theme.surface,
-                    color: theme.text,
-                  }}
-                />
-              </div>
-              <div
                 className="border-2"
                 style={{ backgroundColor: theme.card, borderColor: theme.border }}
               >
                 {journals.length === 0 ? (
                   <div className="py-16 text-center">
-                    <p className="text-4xl">📔</p>
+                    <div className="flex justify-center" aria-hidden>
+                      <BookOpen
+                        className="size-14"
+                        strokeWidth={1.25}
+                        style={{ color: theme.textSecondary }}
+                      />
+                    </div>
                     <p className="mt-2 font-bold">No journal entries yet</p>
                     <p className="mt-1 text-sm" style={{ color: theme.textSecondary }}>
                       <Link href="/journals" className="font-semibold underline" style={{ color: theme.primary }}>
@@ -917,13 +915,8 @@ function PlannerViewInner() {
                       to add one.
                     </p>
                   </div>
-                ) : filteredJournals.length === 0 ? (
-                  <div className="py-16 text-center">
-                    <p className="text-4xl">🔍</p>
-                    <p className="mt-2 font-bold">No matches</p>
-                  </div>
                 ) : (
-                  filteredJournals.map((entry) => (
+                  sortedJournals.map((entry) => (
                     <Link
                       key={entry.id}
                       href={`/journal/${entry.id}`}
@@ -947,7 +940,13 @@ function PlannerViewInner() {
             <div>
               {taskLists.length === 0 ? (
                 <div className="py-16 text-center">
-                  <p className="text-4xl">✅</p>
+                  <div className="flex justify-center" aria-hidden>
+                    <ListChecks
+                      className="size-14"
+                      strokeWidth={1.25}
+                      style={{ color: theme.textSecondary }}
+                    />
+                  </div>
                   <p className="mt-2 font-bold">No task lists</p>
                 </div>
               ) : (
@@ -1005,7 +1004,7 @@ function PlannerViewInner() {
                         className="rounded-lg border-2 px-3 py-2 text-sm"
                         style={{ borderColor: theme.border, color: theme.primary }}
                         onClick={() =>
-                          taskList.id && void handleDeleteTaskList(taskList.id)
+                          taskList.id && setTaskListPendingDeleteId(taskList.id)
                         }
                       >
                         Delete
@@ -1035,6 +1034,20 @@ function PlannerViewInner() {
         onSave={(payload) => void handleSaveReminder(payload)}
         reminder={editingReminder}
       />
+
+      <DestructiveConfirmDialog
+        theme={theme}
+        open={taskListPendingDeleteId != null}
+        titleId="confirm-delete-task-list-title"
+        title="Delete this task list?"
+        onCancel={() => setTaskListPendingDeleteId(null)}
+        onConfirm={() => void confirmDeleteTaskList()}
+      >
+        <p>
+          The list &quot;{pendingTaskListLabel}&quot; and all of its tasks will be
+          removed. This cannot be undone.
+        </p>
+      </DestructiveConfirmDialog>
     </div>
   );
 }

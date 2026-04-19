@@ -48,22 +48,8 @@ export function MainShell({ children }: { children: ReactNode }) {
 
   const hideChrome = useMemo(() => {
     const p = pathname ?? "";
-    if (
-      p === "/editor" ||
-      p === "/task-editor" ||
-      p === "/settings" ||
-      p === "/journals" ||
-      p === "/debug"
-    ) {
-      return true;
-    }
-    if (
-      p.startsWith("/note/") ||
-      p.startsWith("/journal/") ||
-      p.startsWith("/album/")
-    ) {
-      return true;
-    }
+    if (p === "/settings" || p === "/debug") return true;
+    if (p.startsWith("/album/")) return true;
     return false;
   }, [pathname]);
 
@@ -229,6 +215,25 @@ export function MainShell({ children }: { children: ReactNode }) {
                 }}
               >
                 <FileText className="size-5" strokeWidth={2} />
+              </button>
+            </li>
+            <li className="w-full">
+              <button
+                type="button"
+                title="Inspire — add an affirmation or quote"
+                aria-label="Create affirmation or quote"
+                className="flex size-12 w-full items-center justify-center rounded-xl border-2 hover:opacity-90"
+                style={{
+                  borderColor: theme.border,
+                  color: theme.primary,
+                  backgroundColor: theme.surface,
+                }}
+                onClick={() => {
+                  closeMenu();
+                  router.push("/inspire?create=1");
+                }}
+              >
+                <Send className="size-5" strokeWidth={2} />
               </button>
             </li>
             <li className="w-full">

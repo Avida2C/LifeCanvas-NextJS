@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { BookOpen, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -13,17 +13,16 @@ export function JournalsListView() {
   const { theme } = useTheme();
   const router = useRouter();
   const [allJournals, setAllJournals] = useState<JournalEntry[]>([]);
-  const [q, setQ] = useState("");
 
-  const journals = useMemo(() => {
-    if (!q.trim()) return allJournals;
-    const qq = q.toLowerCase();
-    return allJournals.filter(
-      (j) =>
-        j.title.toLowerCase().includes(qq) ||
-        j.content.toLowerCase().includes(qq),
-    );
-  }, [allJournals, q]);
+  const sortedJournals = useMemo(
+    () =>
+      [...allJournals].sort(
+        (a, b) =>
+          new Date(b.updatedAt || b.createdAt).getTime() -
+          new Date(a.updatedAt || a.createdAt).getTime(),
+      ),
+    [allJournals],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -40,7 +39,7 @@ export function JournalsListView() {
   return (
     <div className="flex min-h-full flex-col" style={{ backgroundColor: theme.background }}>
       <ScreenHeader
-        title={`My journals (${journals.length})`}
+        title={`My journals (${allJournals.length})`}
         theme={theme}
         actions={[
           {
@@ -50,35 +49,22 @@ export function JournalsListView() {
           },
         ]}
       />
-      <div className="border-b-2 p-3" style={{ borderColor: theme.border, backgroundColor: theme.card }}>
-        <input
-          type="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search journal entries…"
-          className="w-full rounded-lg border-2 px-3 py-2"
-          style={{
-            borderColor: theme.border,
-            backgroundColor: theme.surface,
-            color: theme.text,
-          }}
-        />
-      </div>
       <div className="flex-1">
         {allJournals.length === 0 ? (
           <div className="py-20 text-center">
-            <p className="text-5xl">📖</p>
+            <div className="flex justify-center" aria-hidden>
+              <BookOpen
+                className="size-16"
+                strokeWidth={1.25}
+                style={{ color: theme.textSecondary }}
+              />
+            </div>
             <p className="mt-2 font-bold" style={{ color: theme.text }}>
               No journal entries yet
             </p>
           </div>
-        ) : journals.length === 0 ? (
-          <div className="py-20 text-center">
-            <p className="text-5xl">🔍</p>
-            <p className="mt-2 font-bold">No matches</p>
-          </div>
         ) : (
-          journals.map((journal) => {
+          sortedJournals.map((journal) => {
             const createdAt = new Date(journal.createdAt);
             const updatedAt = new Date(journal.updatedAt || journal.createdAt);
             const updated = updatedAt.getTime() !== createdAt.getTime();

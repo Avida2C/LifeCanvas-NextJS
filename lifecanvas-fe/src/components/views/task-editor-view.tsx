@@ -1,6 +1,6 @@
 "use client";
 
-import { Save } from "lucide-react";
+import { Save, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { ScreenHeader } from "@/components/screen-header";
@@ -126,7 +126,7 @@ function TaskEditorInner() {
                   onClick={() => removeTask(task.id)}
                   aria-label="Remove"
                 >
-                  ✕
+                  <X className="size-5" strokeWidth={2} aria-hidden />
                 </button>
               )}
               <input

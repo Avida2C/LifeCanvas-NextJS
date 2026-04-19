@@ -9,6 +9,7 @@ import { useTheme } from "@/components/providers/theme-provider";
 import {
   getJournalEntries,
   getNotes,
+  saveDataUrlToMediaGallery,
   saveJournalEntry,
   saveNote,
 } from "@/lib/storage";
@@ -83,7 +84,7 @@ function EditorInner() {
   return (
     <div className="flex min-h-full flex-col" style={{ backgroundColor: theme.background }}>
       <ScreenHeader
-        title={type === "journal" ? "Journal entry" : "Note"}
+        title={type === "journal" ? "Journal" : "Note"}
         theme={theme}
         actions={[
           {
@@ -119,7 +120,13 @@ function EditorInner() {
             value={content}
             onChange={setContent}
             placeholder={`Write your ${type}…`}
-            onImageAdd={(uri) => setEntryImages((p) => [...p, uri])}
+            onImageAdd={(uri) => {
+              setEntryImages((p) => [...p, uri]);
+              void saveDataUrlToMediaGallery(uri, {
+                name: type === "journal" ? "Journal image" : "Note image",
+              });
+            }}
+            nextImageIndex={entryImages.length}
             maxLength={type === "note" ? 2000 : undefined}
             maxWords={type === "note" ? 300 : undefined}
             showCharCount

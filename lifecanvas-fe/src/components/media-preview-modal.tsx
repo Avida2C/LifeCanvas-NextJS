@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { X } from "lucide-react";
+import { Loader2, User, X } from "lucide-react";
 import type { Theme } from "@/lib/theme";
 import { isVideoDataUrl } from "@/lib/media-utils";
 import type { Photo } from "@/types";
@@ -28,6 +28,9 @@ export function MediaPreviewModal({
   onDescChange,
   onSaveDetails,
   actions,
+  onUseAsProfilePhoto,
+  useAsProfilePhotoPending,
+  isProfilePicture,
 }: {
   theme: Theme;
   photo: Photo;
@@ -41,6 +44,11 @@ export function MediaPreviewModal({
   /** Shown only under Description when details are open. */
   onSaveDetails?: () => void | Promise<void>;
   actions: ReactNode;
+  /** Still images only — set account avatar from this upload. */
+  onUseAsProfilePhoto?: () => void | Promise<void>;
+  useAsProfilePhotoPending?: boolean;
+  /** This gallery item is the current account profile photo. */
+  isProfilePicture?: boolean;
 }) {
   const isVideo = isVideoDataUrl(photo.uri);
 
@@ -68,6 +76,15 @@ export function MediaPreviewModal({
             <p className="truncate text-xs" style={{ color: theme.textSecondary }}>
               {isVideo ? "Video" : "Image"} · Added {formatAddedAt(photo.createdAt)}
             </p>
+            {isProfilePicture && !isVideo ? (
+              <p
+                className="mt-1 flex items-center gap-1 truncate text-xs font-semibold"
+                style={{ color: theme.primary }}
+              >
+                <User className="size-3.5 shrink-0" aria-hidden />
+                Profile picture
+              </p>
+            ) : null}
           </div>
           <button
             type="button"
@@ -170,6 +187,22 @@ export function MediaPreviewModal({
                 Actions
               </p>
               <div className="flex w-full flex-col gap-2 px-[0.2rem]">
+                {!isVideo && onUseAsProfilePhoto && !isProfilePicture ? (
+                  <button
+                    type="button"
+                    disabled={useAsProfilePhotoPending}
+                    onClick={() => void onUseAsProfilePhoto()}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border-2 py-2.5 text-sm font-semibold disabled:opacity-60"
+                    style={{ borderColor: theme.primary, color: theme.primary }}
+                  >
+                    {useAsProfilePhotoPending ? (
+                      <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                    ) : (
+                      <User className="size-4 shrink-0" aria-hidden />
+                    )}
+                    Use as profile photo
+                  </button>
+                ) : null}
                 {actions}
               </div>
             </section>

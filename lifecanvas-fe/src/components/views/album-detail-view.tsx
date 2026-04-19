@@ -8,16 +8,19 @@ import {
   Pencil,
   Star,
   Trash2,
+  User,
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { ConfirmDeleteMediaDialog } from "@/components/confirm-delete-media-dialog";
 import { MediaPreviewModal } from "@/components/media-preview-modal";
 import { ScreenHeader } from "@/components/screen-header";
 import { useTheme } from "@/components/providers/theme-provider";
 import {
   canUseAsAlbumCover,
   fileToGalleryDataUrl,
+  imageDataUrlToAvatarDataUrl,
   isVideoDataUrl,
   newGalleryPhotoId,
 } from "@/lib/media-utils";
@@ -26,8 +29,10 @@ import {
   getAlbumPhotos,
   getAlbums,
   getPhotos,
+  getUserSettings,
   movePhotoToAlbum,
   savePhoto,
+  saveUserSettings,
   setAlbumCover,
   updatePhoto,
 } from "@/lib/storage";
@@ -55,11 +60,19 @@ export function AlbumDetailView({
     name: string;
     description?: string;
   } | null>(null);
+  const [profilePhotoBusy, setProfilePhotoBusy] = useState(false);
+  const [confirmDeleteFromLibraryOpen, setConfirmDeleteFromLibraryOpen] =
+    useState(false);
+  const [profileRef, setProfileRef] = useState<{
+    avatarDataUrl?: string;
+    avatarGalleryPhotoId?: string;
+  } | null>(null);
 
   const load = useCallback(async () => {
-    const [albumPhotos, albums] = await Promise.all([
+    const [albumPhotos, albums, settings] = await Promise.all([
       getAlbumPhotos(albumId),
       getAlbums(),
+      getUserSettings(),
     ]);
     setPhotos(albumPhotos);
     const album = albums.find((a) => a.id === albumId);
@@ -69,7 +82,26 @@ export function AlbumDetailView({
         ? { name: album.name, description: album.description }
         : null,
     );
+    setProfileRef(
+      settings
+        ? {
+            avatarDataUrl: settings.avatarDataUrl,
+            avatarGalleryPhotoId: settings.avatarGalleryPhotoId,
+          }
+        : null,
+    );
   }, [albumId]);
+
+  const isPhotoUsedAsProfile = useCallback(
+    (p: Photo) =>
+      Boolean(
+        profileRef &&
+          ((profileRef.avatarGalleryPhotoId &&
+            p.id === profileRef.avatarGalleryPhotoId) ||
+            (profileRef.avatarDataUrl && p.uri === profileRef.avatarDataUrl)),
+      ),
+    [profileRef],
+  );
 
   useEffect(() => {
     void load();
@@ -141,6 +173,48 @@ export function AlbumDetailView({
 
   const modalCanBeCover = !!modal && canUseAsAlbumCover(modal.uri);
 
+  const executeDeletePhotoFromLibrary = useCallback(async () => {
+    if (!modal) return;
+    await deletePhoto(modal.id);
+    setConfirmDeleteFromLibraryOpen(false);
+    setModal(null);
+    setDetailsEditing(false);
+    void load();
+  }, [modal, load]);
+
+  useEffect(() => {
+    if (!modal) setConfirmDeleteFromLibraryOpen(false);
+  }, [modal]);
+
+  const useModalAsProfilePhoto = useCallback(async () => {
+    if (!modal) return;
+    if (isVideoDataUrl(modal.uri)) return;
+    setProfilePhotoBusy(true);
+    try {
+      const settings = await getUserSettings();
+      if (!settings) {
+        alert("Sign in to set a profile photo.");
+        return;
+      }
+      const dataUrl = await imageDataUrlToAvatarDataUrl(modal.uri);
+      await saveUserSettings({
+        ...settings,
+        avatarDataUrl: dataUrl,
+        avatarGalleryPhotoId: modal.id,
+      });
+      setProfileRef({
+        avatarDataUrl: dataUrl,
+        avatarGalleryPhotoId: modal.id,
+      });
+      setModal(null);
+      setDetailsEditing(false);
+    } catch {
+      alert("Could not use this image as your profile photo.");
+    } finally {
+      setProfilePhotoBusy(false);
+    }
+  }, [modal]);
+
   return (
     <div className="flex min-h-full flex-col" style={{ backgroundColor: theme.background }}>
       <ScreenHeader
@@ -160,36 +234,51 @@ export function AlbumDetailView({
         </p>
       ) : null}
       <div className="grid grid-cols-3 gap-0.5 p-1 pb-24">
-        {photos.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            className="aspect-square overflow-hidden"
-            onClick={() => {
-              setModal(p);
-              setName(p.name || "");
-              setDesc(p.description || "");
-              setDetailsEditing(false);
-            }}
-          >
-            {isVideoDataUrl(p.uri) ? (
-              <video
-                src={p.uri}
-                className="size-full object-cover"
-                muted
-                playsInline
-                preload="metadata"
-                controlsList="nodownload"
-                draggable={false}
-                onContextMenu={(e) => e.preventDefault()}
-                aria-hidden
-              />
-            ) : (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={p.uri} alt="" className="size-full object-cover" />
-            )}
-          </button>
-        ))}
+        {photos.map((p) => {
+          const profilePic = isPhotoUsedAsProfile(p);
+          return (
+            <button
+              key={p.id}
+              type="button"
+              className="relative aspect-square overflow-hidden"
+              onClick={() => {
+                setModal(p);
+                setName(p.name || "");
+                setDesc(p.description || "");
+                setDetailsEditing(false);
+              }}
+              aria-label={
+                profilePic ? "Open photo (profile picture)" : "Open photo"
+              }
+            >
+              {isVideoDataUrl(p.uri) ? (
+                <video
+                  src={p.uri}
+                  className="size-full object-cover"
+                  muted
+                  playsInline
+                  preload="metadata"
+                  controlsList="nodownload"
+                  draggable={false}
+                  onContextMenu={(e) => e.preventDefault()}
+                  aria-hidden
+                />
+              ) : (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={p.uri} alt="" className="size-full object-cover" />
+              )}
+              {profilePic ? (
+                <span
+                  className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center gap-0.5 bg-black/70 py-0.5 text-[0.6rem] font-bold leading-none text-white"
+                  aria-hidden
+                >
+                  <User className="size-2.5 shrink-0" strokeWidth={2.5} />
+                  Profile
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
       </div>
       {photos.length === 0 && (
         <p className="py-12 text-center text-sm" style={{ color: theme.textSecondary }}>
@@ -237,10 +326,10 @@ export function AlbumDetailView({
                       >
                         {selected ? (
                           <span
-                            className="absolute right-0.5 top-0.5 flex size-5 items-center justify-center rounded-full text-xs font-bold text-white"
+                            className="absolute right-0.5 top-0.5 flex size-5 items-center justify-center rounded-full text-white"
                             style={{ backgroundColor: theme.primary }}
                           >
-                            ✓
+                            <Check className="size-3" strokeWidth={3} aria-hidden />
                           </span>
                         ) : null}
                         {isVideoDataUrl(p.uri) ? (
@@ -295,6 +384,7 @@ export function AlbumDetailView({
           name={name}
           desc={desc}
           detailsVisible={detailsEditing}
+          isProfilePicture={isPhotoUsedAsProfile(modal)}
           onClose={() => {
             setModal(null);
             setDetailsEditing(false);
@@ -310,6 +400,10 @@ export function AlbumDetailView({
             setDetailsEditing(false);
             void load();
           }}
+          onUseAsProfilePhoto={
+            !isVideoDataUrl(modal.uri) ? useModalAsProfilePhoto : undefined
+          }
+          useAsProfilePhotoPending={profilePhotoBusy}
           actions={
             <>
               <button
@@ -393,17 +487,7 @@ export function AlbumDetailView({
               <div className="flex min-w-0 flex-nowrap gap-1">
                 <button
                   type="button"
-                  onClick={async () => {
-                    if (
-                      !confirm(
-                        "Delete this photo or video from your library everywhere? This cannot be undone.",
-                      )
-                    )
-                      return;
-                    await deletePhoto(modal.id);
-                    setModal(null);
-                    void load();
-                  }}
+                  onClick={() => setConfirmDeleteFromLibraryOpen(true)}
                   className="inline-flex min-w-0 flex-1 items-center justify-center gap-1 rounded-lg bg-red-500 px-1 py-2 text-xs font-medium text-white sm:gap-1.5 sm:px-2 sm:text-sm"
                 >
                   <Trash2 className="size-3.5 shrink-0 sm:size-4" aria-hidden />
@@ -426,6 +510,15 @@ export function AlbumDetailView({
           }
         />
       )}
+
+      <ConfirmDeleteMediaDialog
+        theme={theme}
+        open={confirmDeleteFromLibraryOpen && !!modal}
+        photo={modal}
+        titleId="confirm-delete-library-title"
+        onCancel={() => setConfirmDeleteFromLibraryOpen(false)}
+        onConfirm={() => void executeDeletePhotoFromLibrary()}
+      />
     </div>
   );
 }

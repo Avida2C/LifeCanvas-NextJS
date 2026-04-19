@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, Pencil, Trash2, X } from "lucide-react";
 import { GiLotusFlower } from "react-icons/gi";
 import { ImQuotesLeft, ImQuotesRight } from "react-icons/im";
+import { ConfirmDeleteMediaDialog } from "@/components/confirm-delete-media-dialog";
 import { MediaPreviewModal } from "@/components/media-preview-modal";
 import { useTheme } from "@/components/providers/theme-provider";
 import {
@@ -20,13 +21,25 @@ import {
   getReminders,
   getTaskLists,
   getUserSettings,
+  saveDataUrlToMediaGallery,
   saveUserSettings,
   deletePhoto,
   updatePhoto,
 } from "@/lib/storage";
-import { canUseAsAlbumCover } from "@/lib/media-utils";
+import {
+  canUseAsAlbumCover,
+  imageDataUrlToAvatarDataUrl,
+  isVideoDataUrl,
+} from "@/lib/media-utils";
 import { subscribePhotosChanged } from "@/lib/photos-idb";
-import type { Photo, Quote, UserSettings } from "@/types";
+import { DEMO_ACCOUNT, isDemoUserSettings } from "@/lib/demo-account";
+import type {
+  Affirmation,
+  Photo,
+  Quote,
+  UserCreatedQuote,
+  UserSettings,
+} from "@/types";
 
 function parseFavoriteQuotes(raw: string[]): Quote[] {
   return raw.map((id) => {
@@ -126,6 +139,12 @@ export function MeView() {
   const [defaultAffirmation, setDefaultAffirmation] = useState<string | null>(null);
   const [recentPhotos, setRecentPhotos] = useState<Photo[]>([]);
   const [favoritePreview, setFavoritePreview] = useState<Quote[]>([]);
+  const [createdAffirmationsPreview, setCreatedAffirmationsPreview] = useState<
+    Affirmation[]
+  >([]);
+  const [createdQuotesPreview, setCreatedQuotesPreview] = useState<UserCreatedQuote[]>(
+    [],
+  );
   const [nameEditing, setNameEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [avatarBusy, setAvatarBusy] = useState(false);
@@ -134,6 +153,8 @@ export function MeView() {
   const [previewName, setPreviewName] = useState("");
   const [previewDesc, setPreviewDesc] = useState("");
   const [previewDetailsEditing, setPreviewDetailsEditing] = useState(false);
+  const [confirmDeleteGalleryOpen, setConfirmDeleteGalleryOpen] =
+    useState(false);
 
   const load = useCallback(async () => {
     // Resolve profile + daily inspiration from fast storage first so the Me quote/affirmation
@@ -204,6 +225,23 @@ export function MeView() {
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       ),
     );
+
+    setCreatedAffirmationsPreview(
+      [...affirmationsList]
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        )
+        .slice(0, 3),
+    );
+    setCreatedQuotesPreview(
+      [...myQuotesList]
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        )
+        .slice(0, 3),
+    );
   }, []);
 
   useEffect(() => {
@@ -216,7 +254,11 @@ export function MeView() {
 
   useEffect(() => {
     if (userSettings && !nameEditing) {
-      setNameDraft(userSettings.nickname?.trim() || userSettings.name || "");
+      setNameDraft(
+        isDemoUserSettings(userSettings)
+          ? DEMO_ACCOUNT.nickname
+          : userSettings.nickname?.trim() || userSettings.name || "",
+      );
     }
   }, [userSettings, nameEditing]);
 
@@ -225,6 +267,10 @@ export function MeView() {
     setPreviewName(previewPhoto.name || "");
     setPreviewDesc(previewPhoto.description || "");
     setPreviewDetailsEditing(false);
+  }, [previewPhoto]);
+
+  useEffect(() => {
+    if (!previewPhoto) setConfirmDeleteGalleryOpen(false);
   }, [previewPhoto]);
 
   const closePhotoPreview = useCallback(() => {
@@ -242,25 +288,44 @@ export function MeView() {
     void load();
   }, [previewPhoto, previewName, previewDesc, closePhotoPreview, load]);
 
-  const removePhotoFromPreview = useCallback(async () => {
+  const executeRemovePhotoFromPreview = useCallback(async () => {
     if (!previewPhoto) return;
-    if (
-      !confirm(
-        "Delete this photo or video from your library? This cannot be undone.",
-      )
-    )
-      return;
     await deletePhoto(previewPhoto.id);
+    setConfirmDeleteGalleryOpen(false);
     closePhotoPreview();
     void load();
   }, [previewPhoto, closePhotoPreview, load]);
 
-  const displayName = userSettings?.nickname?.trim() || userSettings?.name || "Friend";
+  const usePreviewPhotoAsProfile = useCallback(async () => {
+    if (!previewPhoto || !userSettings) return;
+    if (isVideoDataUrl(previewPhoto.uri)) return;
+    setAvatarBusy(true);
+    try {
+      const dataUrl = await imageDataUrlToAvatarDataUrl(previewPhoto.uri);
+      const merged: UserSettings = {
+        ...userSettings,
+        avatarDataUrl: dataUrl,
+        avatarGalleryPhotoId: previewPhoto.id,
+      };
+      await saveUserSettings(merged);
+      setUserSettings(merged);
+      closePhotoPreview();
+    } catch {
+      alert("Could not use this image as your profile photo.");
+    } finally {
+      setAvatarBusy(false);
+    }
+  }, [previewPhoto, userSettings, closePhotoPreview]);
+
+  const displayName =
+    userSettings && isDemoUserSettings(userSettings)
+      ? DEMO_ACCOUNT.nickname
+      : userSettings?.nickname?.trim() || userSettings?.name || "Friend";
   const journalAndNotesTotal = stats.journals + stats.notes;
   const createdQuotesAndAffirmations = stats.myQuotes + stats.affirmations;
 
   const saveName = async () => {
-    if (!userSettings) return;
+    if (!userSettings || isDemoUserSettings(userSettings)) return;
     const next = nameDraft.trim();
     if (!next) return;
     setProfileBusy(true);
@@ -285,9 +350,14 @@ export function MeView() {
     setAvatarBusy(true);
     try {
       const dataUrl = await fileToAvatarDataUrl(file);
-      const merged: UserSettings = { ...userSettings, avatarDataUrl: dataUrl };
+      const merged: UserSettings = {
+        ...userSettings,
+        avatarDataUrl: dataUrl,
+        avatarGalleryPhotoId: undefined,
+      };
       await saveUserSettings(merged);
       setUserSettings(merged);
+      void saveDataUrlToMediaGallery(dataUrl, { name: "Profile photo" });
     } catch {
       alert("Could not use this image. Try a smaller JPG or PNG.");
     } finally {
@@ -340,7 +410,7 @@ export function MeView() {
                     className="size-full object-cover object-center"
                   />
                 ) : (
-                  (userSettings?.nickname?.trim() || userSettings?.name)?.charAt(0).toUpperCase() ?? "U"
+                  displayName.charAt(0).toUpperCase() || "U"
                 )}
               </button>
               <button
@@ -402,18 +472,20 @@ export function MeView() {
             ) : (
               <>
                 <h1 className="text-2xl font-bold leading-none tracking-tight">{displayName}</h1>
-                <div className="mt-0.5 inline-block pr-4">
-                  <button
-                    type="button"
-                    onClick={() => setNameEditing(true)}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-0.5 text-sm font-medium"
-                    style={{ color: theme.primary }}
-                    aria-label="Edit name"
-                  >
-                    <Pencil className="size-4 shrink-0" />
-                    Edit
-                  </button>
-                </div>
+                {userSettings && !isDemoUserSettings(userSettings) ? (
+                  <div className="mt-0.5 inline-block pr-4">
+                    <button
+                      type="button"
+                      onClick={() => setNameEditing(true)}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-0.5 text-sm font-medium"
+                      style={{ color: theme.primary }}
+                      aria-label="Edit name"
+                    >
+                      <Pencil className="size-4 shrink-0" />
+                      Edit
+                    </button>
+                  </div>
+                ) : null}
               </>
             )}
           </div>
@@ -488,10 +560,6 @@ export function MeView() {
               Pin something in{" "}
               <Link href="/favorites" className="font-semibold underline" style={{ color: theme.primary }}>
                 Favorites
-              </Link>
-              , or write affirmations in{" "}
-              <Link href="/affirmations" className="font-semibold underline" style={{ color: theme.primary }}>
-                My affirmations
               </Link>
               .
             </p>
@@ -596,6 +664,99 @@ export function MeView() {
         </div>
       </section>
 
+      {/* Created by me */}
+      <section className="mx-4 mt-5">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <h2 className="text-xs font-bold uppercase tracking-wider" style={{ color: theme.textSecondary }}>
+            Created by me
+          </h2>
+          <Link
+            href="/created-by-me"
+            className="text-xs font-semibold"
+            style={{ color: theme.primary }}
+          >
+            See all ({createdQuotesAndAffirmations})
+          </Link>
+        </div>
+        {createdQuotesAndAffirmations === 0 ? (
+          <div className="rounded-2xl border-2 p-4 text-center text-sm" style={cardStyle}>
+            <p style={{ color: theme.textSecondary }}>
+              Add affirmations or your own quotes in{" "}
+              <Link href="/created-by-me" className="font-semibold underline" style={{ color: theme.primary }}>
+                Created by me
+              </Link>
+              .
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {createdAffirmationsPreview.length > 0 ? (
+              <div>
+                <p
+                  className="mb-1.5 text-[10px] font-bold uppercase tracking-wide"
+                  style={{ color: theme.textSecondary }}
+                >
+                  Affirmations
+                </p>
+                <ul className="space-y-2">
+                  {createdAffirmationsPreview.map((a) => (
+                    <li
+                      key={a.id}
+                      className="rounded-xl border-2 px-3 py-2.5"
+                      style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                    >
+                      <p className="line-clamp-3 text-sm leading-snug" style={{ color: theme.text }}>
+                        {a.text}
+                      </p>
+                      <p className="mt-1 text-xs" style={{ color: theme.textSecondary }}>
+                        {new Date(a.createdAt).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {createdQuotesPreview.length > 0 ? (
+              <div>
+                <p
+                  className="mb-1.5 text-[10px] font-bold uppercase tracking-wide"
+                  style={{ color: theme.textSecondary }}
+                >
+                  Quotes
+                </p>
+                <ul className="space-y-2">
+                  {createdQuotesPreview.map((q) => (
+                    <li
+                      key={q.id}
+                      className="rounded-xl border-2 px-3 py-2.5"
+                      style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                    >
+                      <p className="line-clamp-2 text-sm italic" style={{ color: theme.text }}>
+                        &ldquo;{q.quote}&rdquo;
+                      </p>
+                      <p className="mt-1 text-right text-xs" style={{ color: theme.textSecondary }}>
+                        — {q.author}
+                      </p>
+                      <p className="mt-0.5 text-xs" style={{ color: theme.textSecondary }}>
+                        {new Date(q.createdAt).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+        )}
+      </section>
+
       {/* Photos */}
       <section className="mx-4 mt-5">
         <div className="mb-2 flex items-center justify-between gap-2">
@@ -646,10 +807,19 @@ export function MeView() {
           name={previewName}
           desc={previewDesc}
           detailsVisible={previewDetailsEditing}
+          isProfilePicture={Boolean(
+            userSettings &&
+              ((userSettings.avatarGalleryPhotoId === previewPhoto.id) ||
+                (userSettings.avatarDataUrl === previewPhoto.uri)),
+          )}
           onClose={closePhotoPreview}
           onNameChange={setPreviewName}
           onDescChange={setPreviewDesc}
           onSaveDetails={() => void savePhotoPreviewDetails()}
+          onUseAsProfilePhoto={
+            !isVideoDataUrl(previewPhoto.uri) ? usePreviewPhotoAsProfile : undefined
+          }
+          useAsProfilePhotoPending={avatarBusy}
           actions={
             <>
               <Link
@@ -672,7 +842,7 @@ export function MeView() {
               <div className="flex min-w-0 flex-nowrap gap-1">
                 <button
                   type="button"
-                  onClick={() => void removePhotoFromPreview()}
+                  onClick={() => setConfirmDeleteGalleryOpen(true)}
                   className="inline-flex min-w-0 flex-1 items-center justify-center gap-1 rounded-lg bg-red-500 py-2 text-sm font-medium text-white"
                 >
                   <Trash2 className="size-4 shrink-0" aria-hidden />
@@ -692,6 +862,15 @@ export function MeView() {
           }
         />
       ) : null}
+
+      <ConfirmDeleteMediaDialog
+        theme={theme}
+        open={confirmDeleteGalleryOpen && !!previewPhoto}
+        photo={previewPhoto}
+        titleId="confirm-delete-me-gallery-photo-title"
+        onCancel={() => setConfirmDeleteGalleryOpen(false)}
+        onConfirm={() => void executeRemovePhotoFromPreview()}
+      />
     </div>
   );
 }

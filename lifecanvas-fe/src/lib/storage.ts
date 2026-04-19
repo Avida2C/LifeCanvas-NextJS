@@ -11,7 +11,7 @@ import type {
   Reminder,
 } from "@/types";
 import { getAllPhotos, saveAllPhotos } from "@/lib/photos-idb";
-import { canUseAsAlbumCover } from "@/lib/media-utils";
+import { canUseAsAlbumCover, newGalleryPhotoId } from "@/lib/media-utils";
 
 const safeStorage = {
   async getItem(key: string): Promise<string | null> {
@@ -225,6 +225,28 @@ export const savePhoto = async (photo: Photo): Promise<boolean> => {
   }
 };
 
+/**
+ * Adds a data-URL image or video to All media (same store as Media tab).
+ * Profile and note/journal uploads use this so they appear in the gallery.
+ */
+export async function saveDataUrlToMediaGallery(
+  dataUrl: string,
+  options?: { name?: string },
+): Promise<boolean> {
+  if (
+    !dataUrl.startsWith("data:image/") &&
+    !dataUrl.startsWith("data:video/")
+  ) {
+    return false;
+  }
+  return savePhoto({
+    id: newGalleryPhotoId(),
+    uri: dataUrl,
+    createdAt: new Date().toISOString(),
+    name: options?.name,
+  });
+}
+
 export const updatePhoto = async (id: string, updates: Partial<Photo>): Promise<void> => {
   try {
     const photos = await getPhotos();
@@ -237,14 +259,217 @@ export const updatePhoto = async (id: string, updates: Partial<Photo>): Promise<
   }
 };
 
+/** Remove a deleted gallery image from note/journal body + images[] (lcimg indices remapped). */
+function purgeImageUriFromNoteOrJournal(
+  content: string,
+  images: string[] | undefined,
+  deletedUri: string,
+): { content: string; images?: string[]; changed: boolean } {
+  const imgs = images ?? [];
+  const removedIndices = new Set<number>();
+  imgs.forEach((u, i) => {
+    if (u === deletedUri) removedIndices.add(i);
+  });
+  const newImages = imgs.filter((u) => u !== deletedUri);
+
+  const oldToNew = new Map<number, number>();
+  imgs.forEach((u, i) => {
+    if (removedIndices.has(i)) return;
+    const ni = newImages.indexOf(u);
+    if (ni >= 0) oldToNew.set(i, ni);
+  });
+
+  const lines = content.split("\n");
+  const out: string[] = [];
+  let changed = removedIndices.size > 0;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const lc = trimmed.match(/^!\[([^\]]*)\]\(lcimg:(\d+)\)\s*$/);
+    if (lc) {
+      const idx = Number.parseInt(lc[2], 10);
+      if (removedIndices.has(idx)) {
+        changed = true;
+        continue;
+      }
+      const newIdx = oldToNew.get(idx);
+      if (newIdx === undefined) {
+        changed = true;
+        continue;
+      }
+      if (newIdx !== idx) {
+        changed = true;
+        out.push(line.replace(/\(lcimg:\d+\)/, `(lcimg:${newIdx})`));
+      } else {
+        out.push(line);
+      }
+      continue;
+    }
+    const legacy = trimmed.match(/^!\[([^\]]*)\]\((.+)\)\s*$/);
+    if (legacy && legacy[2] === deletedUri) {
+      changed = true;
+      continue;
+    }
+    out.push(line);
+  }
+
+  return {
+    content: out.join("\n"),
+    images: newImages.length > 0 ? newImages : undefined,
+    changed,
+  };
+}
+
+async function purgeReferencesToDeletedMedia(photo: Photo): Promise<void> {
+  const uri = photo.uri;
+
+  try {
+    const settings = await getUserSettings();
+    if (
+      settings &&
+      (settings.avatarDataUrl === uri ||
+        settings.avatarGalleryPhotoId === photo.id)
+    ) {
+      await saveUserSettings({
+        ...settings,
+        avatarDataUrl: undefined,
+        avatarGalleryPhotoId: undefined,
+      });
+    }
+  } catch (e) {
+    console.error("Error clearing avatar for deleted media:", e);
+  }
+
+  try {
+    const notes = await getNotes();
+    let notesChanged = false;
+    const nextNotes = notes.map((note) => {
+      const r = purgeImageUriFromNoteOrJournal(note.content, note.images, uri);
+      if (!r.changed) return note;
+      notesChanged = true;
+      return {
+        ...note,
+        content: r.content,
+        images: r.images,
+      };
+    });
+    if (notesChanged) {
+      await safeStorage.setItem(KEYS.NOTES, JSON.stringify(nextNotes));
+    }
+  } catch (e) {
+    console.error("Error purging deleted media from notes:", e);
+  }
+
+  try {
+    const journals = await getJournalEntries();
+    let journalsChanged = false;
+    const nextJournals = journals.map((entry) => {
+      const r = purgeImageUriFromNoteOrJournal(entry.content, entry.images, uri);
+      if (!r.changed) return entry;
+      journalsChanged = true;
+      return {
+        ...entry,
+        content: r.content,
+        images: r.images,
+      };
+    });
+    if (journalsChanged) {
+      await safeStorage.setItem(KEYS.JOURNAL_ENTRIES, JSON.stringify(nextJournals));
+    }
+  } catch (e) {
+    console.error("Error purging deleted media from journals:", e);
+  }
+
+  try {
+    const albums = await getAlbums();
+    for (const a of albums) {
+      if (a.coverPhotoId === photo.id) {
+        await updateAlbumPhotoCount(a.id);
+      }
+    }
+  } catch (e) {
+    console.error("Error refreshing album covers after delete:", e);
+  }
+}
+
+export type PhotoDeleteImpact = {
+  usedAsProfile: boolean;
+  noteEntriesAffected: number;
+  journalEntriesAffected: number;
+  albumCoversAffected: number;
+};
+
+/** Counts other places that will change if this gallery item is deleted. */
+export async function getPhotoDeleteImpact(
+  photo: Photo,
+): Promise<PhotoDeleteImpact> {
+  const uri = photo.uri;
+  let usedAsProfile = false;
+  try {
+    const settings = await getUserSettings();
+    usedAsProfile = Boolean(
+      settings &&
+        (settings.avatarDataUrl === uri ||
+          settings.avatarGalleryPhotoId === photo.id),
+    );
+  } catch {
+    // ignore
+  }
+
+  let noteEntriesAffected = 0;
+  try {
+    const notes = await getNotes();
+    for (const note of notes) {
+      if (purgeImageUriFromNoteOrJournal(note.content, note.images, uri).changed) {
+        noteEntriesAffected += 1;
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  let journalEntriesAffected = 0;
+  try {
+    const journals = await getJournalEntries();
+    for (const entry of journals) {
+      if (
+        purgeImageUriFromNoteOrJournal(entry.content, entry.images, uri).changed
+      ) {
+        journalEntriesAffected += 1;
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  let albumCoversAffected = 0;
+  try {
+    const albums = await getAlbums();
+    albumCoversAffected = albums.filter((a) => a.coverPhotoId === photo.id)
+      .length;
+  } catch {
+    // ignore
+  }
+
+  return {
+    usedAsProfile,
+    noteEntriesAffected,
+    journalEntriesAffected,
+    albumCoversAffected,
+  };
+}
+
 export const deletePhoto = async (id: string): Promise<void> => {
   try {
     const photos = await getPhotos();
     const photo = photos.find((p) => p.id === id);
+    if (!photo) return;
     const filtered = photos.filter((p) => p.id !== id);
     await saveAllPhotos(filtered);
 
-    if (photo?.albumId) {
+    await purgeReferencesToDeletedMedia(photo);
+
+    if (photo.albumId) {
       await updateAlbumPhotoCount(photo.albumId);
     }
   } catch (error) {

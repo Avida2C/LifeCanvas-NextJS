@@ -116,6 +116,8 @@ export interface UserSettings {
   email?: string;
   /** Optional profile photo (data URL), stored locally. */
   avatarDataUrl?: string;
+  /** Gallery photo id when avatar is a cropped copy of that item (for Media UI). */
+  avatarGalleryPhotoId?: string;
   darkMode: boolean;
   /** Primary / accent palette for light and dark themes. */
   accentColor?: AccentId;

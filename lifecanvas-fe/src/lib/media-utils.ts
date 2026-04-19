@@ -89,3 +89,41 @@ export async function fileToGalleryDataUrl(file: File): Promise<string> {
     URL.revokeObjectURL(url);
   }
 }
+
+/**
+ * Downscale/compress an existing image data URL for the account avatar (localStorage quota).
+ */
+export async function imageDataUrlToAvatarDataUrl(
+  imageDataUrl: string,
+  maxDim = 400,
+): Promise<string> {
+  const img = await loadImageElement(imageDataUrl);
+  let w = img.naturalWidth;
+  let h = img.naturalHeight;
+  if (!w || !h) {
+    throw new Error("bad dimensions");
+  }
+  const scale = Math.min(1, maxDim / Math.max(w, h));
+  w = Math.round(w * scale);
+  h = Math.round(h * scale);
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("canvas");
+  }
+  ctx.drawImage(img, 0, 0, w, h);
+  const blob: Blob | null = await new Promise((res) =>
+    canvas.toBlob((b) => res(b), "image/jpeg", 0.88),
+  );
+  if (!blob) {
+    throw new Error("encode");
+  }
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = () => reject(new Error("read"));
+    r.readAsDataURL(blob);
+  });
+}

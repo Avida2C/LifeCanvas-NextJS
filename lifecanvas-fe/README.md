@@ -1,6 +1,8 @@
 # LifeCanvas
 
-**Next.js · React · TypeScript · Tailwind CSS**
+<img src="https://img.shields.io/badge/NextJS-000000?style=flat&logo=nextdotjs&logoColor=white" alt="NextJS" /> <img src="https://img.shields.io/badge/ReactJS-20232A?style=flat&logo=react&logoColor=61DAFB" alt="ReactJS" /> <img src="https://img.shields.io/badge/Tailwind-06B6D4?style=flat&logo=tailwindcss&logoColor=white" alt="Tailwind CSS" /> <img src="https://img.shields.io/badge/DaisyUI-5A0FC8?style=flat" alt="DaisyUI" />
+
+TypeScript
 
 LifeCanvas is a versatile web application designed to enhance users’ daily lives by addressing common challenges such as disorganization and lack of motivation. Its key features include task management, organizational tools, journaling, media, and daily inspiration. The app suits people who care about productivity and reflective writing. It offers a straightforward way to manage tasks, capture thoughts, browse photos and videos, and stay motivated with quotes and affirmations—helping users lead a more structured and efficient life. Data is stored locally in the browser (local storage and IndexedDB for gallery media) so your content stays on your device.
 
@@ -73,6 +75,7 @@ This repository is a **web** app (not Ionic/Capacitor). For a native shell, you 
 - [Next.js](https://nextjs.org) — App Router, SSR/SSG where used  
 - [React](https://react.dev)  
 - [Tailwind CSS](https://tailwindcss.com)  
+- [DaisyUI](https://daisyui.com) — Tailwind component plugin (optional; add when you wire it in)  
 - [lucide-react](https://lucide.dev) — Icons  
 - [react-icons](https://react-icons.github.io/react-icons/) — Additional icons  
 
@@ -84,7 +87,6 @@ Inspire aggregates content from public quote services (with offline fallbacks):
 
 - **API Ninjas** — Optional inspirational quotes when `NEXT_PUBLIC_API_NINJAS_KEY` is set (`src/lib/api.ts`).  
 - **Quote Garden** — Random quotes (`quote-garden.onrender.com`).  
-- **ZenQuotes** — Random quotes (`zenquotes.io`).  
 
 ## Acknowledgements
 

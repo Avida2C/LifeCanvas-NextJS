@@ -7,7 +7,7 @@ import { DestructiveConfirmDialog } from "@/components/destructive-confirm-dialo
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { ScreenHeader } from "@/components/screen-header";
 import { useTheme } from "@/components/providers/theme-provider";
-import { deleteJournalEntry, getJournalEntries } from "@/lib/storage";
+import { deleteJournalEntry, getJournalEntries, getPhotos } from "@/lib/storage";
 import type { JournalEntry } from "@/types";
 
 export function JournalDetailView({ id }: { id: string }) {
@@ -15,6 +15,7 @@ export function JournalDetailView({ id }: { id: string }) {
   const router = useRouter();
   const [entry, setEntry] = useState<JournalEntry | null | undefined>(undefined);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [imageSources, setImageSources] = useState<string[]>([]);
 
   useEffect(() => {
     void (async () => {
@@ -22,6 +23,26 @@ export function JournalDetailView({ id }: { id: string }) {
       setEntry(entries.find((e) => e.id === id) ?? null);
     })();
   }, [id]);
+
+  useEffect(() => {
+    if (!entry?.images?.length) {
+      setImageSources([]);
+      return;
+    }
+    void (async () => {
+      const photos = await getPhotos();
+      const byId = new Map(photos.map((p) => [p.id, p.uri]));
+      setImageSources(
+        entry.images
+          .map((ref) =>
+            ref.startsWith("data:image/") || ref.startsWith("data:video/")
+              ? ref
+              : byId.get(ref),
+          )
+          .filter((x): x is string => Boolean(x)),
+      );
+    })();
+  }, [entry]);
 
   if (entry === undefined) {
     return <div className="p-6 text-sm">Loading…</div>;
@@ -59,7 +80,7 @@ export function JournalDetailView({ id }: { id: string }) {
         ]}
       />
       <div className="flex-1 overflow-y-auto p-4">
-        <div className="mb-3 border-b-2 pb-3" style={{ borderColor: theme.border }}>
+        <div className="mb-3 pb-3">
           <h1 className="text-xl font-bold">{entry.title}</h1>
           <p className="text-xs" style={{ color: theme.textSecondary }}>
             {updated ? "Updated: " : "Created: "}
@@ -67,10 +88,10 @@ export function JournalDetailView({ id }: { id: string }) {
           </p>
         </div>
         <div
-          className="border-2 p-4"
-          style={{ borderColor: theme.border, backgroundColor: theme.card }}
+          className="rounded-2xl border-2 p-5"
+          style={{ borderColor: theme.border, backgroundColor: theme.surface }}
         >
-          <MarkdownRenderer content={entry.content} imageSources={entry.images} />
+          <MarkdownRenderer content={entry.content} imageSources={imageSources} />
         </div>
       </div>
 

@@ -39,6 +39,15 @@ function loadImageElement(src: string): Promise<HTMLImageElement> {
   });
 }
 
+async function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = () => reject(new Error("read"));
+    r.readAsDataURL(blob);
+  });
+}
+
 /**
  * Encode images smaller for localStorage (browser quota is often ~5MB).
  * Videos pass through unchanged (still large; user may hit quota sooner).
@@ -126,4 +135,56 @@ export async function imageDataUrlToAvatarDataUrl(
     r.onerror = () => reject(new Error("read"));
     r.readAsDataURL(blob);
   });
+}
+
+/**
+ * Optimized image payload for note/journal embeds.
+ * - Converts to WebP when possible
+ * - Downscales large images to reduce storage footprint
+ * - Falls back to JPEG or original data URL if needed
+ */
+export async function fileToEditorImageDataUrl(file: File): Promise<string> {
+  if (!file.type.startsWith("image/")) {
+    return readFileAsDataUrl(file);
+  }
+  // Keep GIF as-is to avoid stripping animation frames.
+  if (file.type === "image/gif") {
+    return readFileAsDataUrl(file);
+  }
+
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await loadImageElement(url);
+    let w = img.naturalWidth;
+    let h = img.naturalHeight;
+    if (!w || !h) return readFileAsDataUrl(file);
+
+    const maxDim = 1280;
+    const scale = Math.min(1, maxDim / Math.max(w, h));
+    w = Math.round(w * scale);
+    h = Math.round(h * scale);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return readFileAsDataUrl(file);
+    ctx.drawImage(img, 0, 0, w, h);
+
+    const webp: Blob | null = await new Promise((res) =>
+      canvas.toBlob((b) => res(b), "image/webp", 0.78),
+    );
+    if (webp) return blobToDataUrl(webp);
+
+    const jpeg: Blob | null = await new Promise((res) =>
+      canvas.toBlob((b) => res(b), "image/jpeg", 0.8),
+    );
+    if (jpeg) return blobToDataUrl(jpeg);
+
+    return readFileAsDataUrl(file);
+  } catch {
+    return readFileAsDataUrl(file);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }

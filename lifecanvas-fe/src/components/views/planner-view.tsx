@@ -26,9 +26,9 @@ import {
   type ReactNode,
 } from "react";
 import { CustomCalendar, type MarkedDates } from "@/components/custom-calendar";
-import { DestructiveConfirmDialog } from "@/components/destructive-confirm-dialog";
 import { ReminderModal, type ReminderSavePayload } from "@/components/reminder-modal";
 import { useTheme } from "@/components/providers/theme-provider";
+import { SegmentedTabs } from "@/components/ui/segmented-tabs";
 import { getRecurringDates } from "@/lib/planner-utils";
 import {
   cancelNotification,
@@ -36,7 +36,6 @@ import {
 } from "@/lib/notifications";
 import {
   deleteReminder,
-  deleteTaskList,
   getJournalEntries,
   getNotes,
   getReminders,
@@ -50,6 +49,12 @@ import type { JournalEntry, Note, Reminder, TaskList } from "@/types";
 
 type ExpandedReminder = Reminder & { originalId?: string };
 type PlannerTab = "calendar" | "notes" | "journals" | "tasks";
+const PLANNER_TABS: { id: PlannerTab; label: string }[] = [
+  { id: "calendar", label: "Calendar" },
+  { id: "notes", label: "Notes" },
+  { id: "journals", label: "Journals" },
+  { id: "tasks", label: "Tasks" },
+];
 
 function plannerTabFromParam(tabParam: string | null): PlannerTab {
   if (
@@ -205,9 +210,6 @@ function PlannerViewInner() {
   );
   const [toPickerMonth, setToPickerMonth] = useState(new Date().getMonth());
   const [toPickerYear, setToPickerYear] = useState(new Date().getFullYear());
-  const [taskListPendingDeleteId, setTaskListPendingDeleteId] = useState<
-    string | null
-  >(null);
   useEffect(() => {
     if (!openReminder) return;
     let cancelled = false;
@@ -348,13 +350,6 @@ function PlannerViewInner() {
     await loadData();
   };
 
-  const confirmDeleteTaskList = async () => {
-    if (!taskListPendingDeleteId) return;
-    await deleteTaskList(taskListPendingDeleteId);
-    setTaskListPendingDeleteId(null);
-    await loadData();
-  };
-
   const expandedReminders: ExpandedReminder[] = useMemo(() => {
     const out: ExpandedReminder[] = [];
     reminders.forEach((reminder) => {
@@ -450,17 +445,6 @@ function PlannerViewInner() {
     [journals],
   );
 
-  const segmentClass = (tab: PlannerTab) =>
-    `flex-1 py-2 text-center text-sm font-semibold ${
-      activeTab === tab ? "text-white" : ""
-    }`;
-
-  const pendingTaskListLabel =
-    taskListPendingDeleteId == null
-      ? ""
-      : taskLists.find((t) => t.id === taskListPendingDeleteId)?.title?.trim() ||
-        "this list";
-
   return (
     <div
       className="flex min-h-full flex-col"
@@ -470,33 +454,12 @@ function PlannerViewInner() {
         className="px-4 py-2"
         style={{ backgroundColor: theme.surface }}
       >
-        <div
-          className="flex overflow-hidden rounded-lg border-2"
-          style={{ borderColor: theme.border }}
-        >
-          {(["notes", "journals", "calendar", "tasks"] as const).map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() =>
-                router.push(`/planner?tab=${tab}`, { scroll: false })
-              }
-              className={segmentClass(tab)}
-              style={{
-                backgroundColor: activeTab === tab ? theme.primary : theme.surface,
-                color: activeTab === tab ? "#fff" : theme.text,
-              }}
-            >
-              {tab === "notes"
-                ? "Notes"
-                : tab === "journals"
-                  ? "Journal"
-                  : tab === "calendar"
-                    ? "Calendar"
-                    : "Tasks"}
-            </button>
-          ))}
-        </div>
+        <SegmentedTabs
+          tabs={PLANNER_TABS}
+          value={activeTab}
+          theme={theme}
+          onChange={(tab) => router.push(`/planner?tab=${tab}`, { scroll: false })}
+        />
       </div>
 
       {activeTab === "calendar" ? (
@@ -506,11 +469,11 @@ function PlannerViewInner() {
             markedDates={markedDates}
             onDayPress={handleDayPress}
           />
-          <div className="flex-1 overflow-y-auto p-2">
+          <div className="flex-1 overflow-y-auto pb-24">
             <div
-              className="border-2 p-3"
+              className="mx-4 mt-4 rounded-2xl border-2 p-4"
               style={{
-                backgroundColor: theme.surface,
+                backgroundColor: theme.card,
                 borderColor: theme.border,
               }}
             >
@@ -576,10 +539,10 @@ function PlannerViewInner() {
 
               {showFilter && (
                 <div
-                  className="mb-3 border-2 p-3 text-sm"
+                  className="mb-3 rounded-xl border-2 p-3 text-sm"
                   style={{
                     borderColor: theme.border,
-                    backgroundColor: theme.card,
+                    backgroundColor: theme.surface,
                   }}
                 >
                   <p className="mb-2 font-bold">Date range</p>
@@ -853,14 +816,14 @@ function PlannerViewInner() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto p-2 pb-24">
+        <div className="flex-1 overflow-y-auto p-4 pb-24">
           {activeTab === "notes" && (
             <>
-              <div
-                className="border-2"
-                style={{ backgroundColor: theme.card, borderColor: theme.border }}
-              >
-                {notes.length === 0 ? (
+              {notes.length === 0 ? (
+                <div
+                  className="rounded-2xl border-2 p-3"
+                  style={{ backgroundColor: theme.card, borderColor: theme.border }}
+                >
                   <div className="py-16 text-center">
                     <div className="flex justify-center" aria-hidden>
                       <FileText
@@ -871,34 +834,46 @@ function PlannerViewInner() {
                     </div>
                     <p className="mt-2 font-bold">No notes yet</p>
                   </div>
-                ) : (
-                  sortedNotes.map((note) => (
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {sortedNotes.map((note) => (
                     <Link
                       key={note.id}
                       href={`/note/${note.id}`}
-                      className="flex items-center justify-between border-b px-4 py-3 last:border-b-0"
-                      style={{ borderColor: theme.divider }}
+                      className="flex items-center justify-between rounded-xl border-2 px-3 py-2.5"
+                      style={{
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                      }}
                     >
-                      <div className="min-w-0">
-                        <p className="font-medium">{note.title}</p>
-                        <p className="text-xs" style={{ color: theme.textSecondary }}>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold">{note.title || "Untitled note"}</p>
+                        <p
+                          className="mt-1 line-clamp-2 text-sm"
+                          style={{ color: theme.textSecondary }}
+                        >
+                          {note.content?.trim() || "No preview available yet."}
+                        </p>
+                        <p className="mt-1 text-xs" style={{ color: theme.textSecondary }}>
                           {new Date(note.updatedAt || note.createdAt).toLocaleString()}
+                          {note.images?.length ? ` · ${note.images.length} image${note.images.length === 1 ? "" : "s"}` : ""}
                         </p>
                       </div>
                       <span style={{ color: theme.primary }}>›</span>
                     </Link>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
           {activeTab === "journals" && (
             <>
-              <div
-                className="border-2"
-                style={{ backgroundColor: theme.card, borderColor: theme.border }}
-              >
-                {journals.length === 0 ? (
+              {journals.length === 0 ? (
+                <div
+                  className="rounded-2xl border-2 p-3"
+                  style={{ backgroundColor: theme.card, borderColor: theme.border }}
+                >
                   <div className="py-16 text-center">
                     <div className="flex justify-center" aria-hidden>
                       <BookOpen
@@ -915,29 +890,41 @@ function PlannerViewInner() {
                       to add one.
                     </p>
                   </div>
-                ) : (
-                  sortedJournals.map((entry) => (
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {sortedJournals.map((entry) => (
                     <Link
                       key={entry.id}
                       href={`/journal/${entry.id}`}
-                      className="flex items-center justify-between border-b px-4 py-3 last:border-b-0"
-                      style={{ borderColor: theme.divider }}
+                      className="flex items-center justify-between rounded-xl border-2 px-3 py-2.5"
+                      style={{
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                      }}
                     >
-                      <div className="min-w-0">
-                        <p className="font-medium">{entry.title}</p>
-                        <p className="text-xs" style={{ color: theme.textSecondary }}>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold">{entry.title || "Untitled journal entry"}</p>
+                        <p
+                          className="mt-1 line-clamp-2 text-sm italic"
+                          style={{ color: theme.textSecondary }}
+                        >
+                          {entry.content?.trim() || "No preview available yet."}
+                        </p>
+                        <p className="mt-1 text-xs" style={{ color: theme.textSecondary }}>
                           {new Date(entry.updatedAt || entry.createdAt).toLocaleString()}
+                          {entry.images?.length ? ` · ${entry.images.length} image${entry.images.length === 1 ? "" : "s"}` : ""}
                         </p>
                       </div>
                       <span style={{ color: theme.primary }}>›</span>
                     </Link>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
           {activeTab === "tasks" && (
-            <div>
+            <div className="space-y-3">
               {taskLists.length === 0 ? (
                 <div className="py-16 text-center">
                   <div className="flex justify-center" aria-hidden>
@@ -951,66 +938,78 @@ function PlannerViewInner() {
                 </div>
               ) : (
                 taskLists.map((taskList) => (
-                  <div
-                    key={String(taskList.id)}
-                    className="mb-3 border-2 p-3"
-                    style={{
-                      backgroundColor: theme.card,
-                      borderColor: theme.border,
-                    }}
-                  >
-                    <p className="font-bold">
-                      {taskList.title?.trim() || `Task list #${taskList.id}`}
-                    </p>
-                    <p className="text-xs" style={{ color: theme.textSecondary }}>
-                      {taskList.tasks.length} task(s)
-                    </p>
-                    {[...taskList.tasks.filter((t) => !t.done), ...taskList.tasks.filter((t) => t.done)].map(
-                      (task) => (
-                        <label
-                          key={task.id}
-                          className="mt-2 flex cursor-pointer items-start gap-2"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={task.done}
-                            onChange={() =>
-                              taskList.id &&
-                              void toggleInlineTask(taskList.id, task.id)
+                  (() => {
+                    const orderedTasks = [
+                      ...taskList.tasks.filter((t) => !t.done),
+                      ...taskList.tasks.filter((t) => t.done),
+                    ];
+                    const visibleTasks = orderedTasks.slice(0, 4);
+                    const remainingCount = Math.max(0, orderedTasks.length - visibleTasks.length);
+                    const completedCount = taskList.tasks.filter((t) => t.done).length;
+                    return (
+                      <div
+                        key={String(taskList.id)}
+                        className="rounded-2xl border-2 p-4"
+                        style={{
+                          backgroundColor: theme.card,
+                          borderColor: theme.border,
+                        }}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-bold">
+                            {taskList.title?.trim() || `Task list #${taskList.id}`}
+                          </p>
+                          <button
+                            type="button"
+                            className="shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white"
+                            style={{ backgroundColor: theme.primary }}
+                            onClick={() =>
+                              router.push(`/task/${taskList.id}`)
                             }
-                            className="mt-1"
-                          />
-                          <span
-                            className={task.done ? "line-through opacity-60" : ""}
                           >
-                            {task.content || "Empty task"}
-                          </span>
-                        </label>
-                      ),
-                    )}
-                    <div className="mt-3 flex gap-2">
-                      <button
-                        type="button"
-                        className="rounded-lg px-3 py-2 text-sm font-semibold text-white"
-                        style={{ backgroundColor: theme.primary }}
-                        onClick={() =>
-                          router.push(`/task-editor?id=${taskList.id}`)
-                        }
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="rounded-lg border-2 px-3 py-2 text-sm"
-                        style={{ borderColor: theme.border, color: theme.primary }}
-                        onClick={() =>
-                          taskList.id && setTaskListPendingDeleteId(taskList.id)
-                        }
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
+                            Open
+                          </button>
+                        </div>
+                        <p className="text-xs" style={{ color: theme.textSecondary }}>
+                          {taskList.tasks.length} task(s)
+                          {" · "}
+                          {completedCount} completed
+                        </p>
+                        {visibleTasks.map((task) => (
+                          <div
+                            key={task.id}
+                            className="mt-2 flex items-start gap-2"
+                          >
+                            <button
+                              type="button"
+                              onClick={() =>
+                                taskList.id && void toggleInlineTask(taskList.id, task.id)
+                              }
+                              className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full border text-xs"
+                              style={{
+                                borderColor: task.done ? theme.primary : theme.border,
+                                color: task.done ? "#fff" : theme.textSecondary,
+                                backgroundColor: task.done ? theme.primary : "transparent",
+                              }}
+                              aria-label={task.done ? "Mark as not done" : "Mark as done"}
+                            >
+                              {task.done ? "✓" : ""}
+                            </button>
+                            <span
+                              className={task.done ? "line-through opacity-60" : ""}
+                            >
+                              {task.content || "Empty task"}
+                            </span>
+                          </div>
+                        ))}
+                        {remainingCount > 0 ? (
+                          <p className="mt-2 text-xs font-medium" style={{ color: theme.textSecondary }}>
+                            +{remainingCount} other{remainingCount === 1 ? "" : "s"} in the list
+                          </p>
+                        ) : null}
+                      </div>
+                    );
+                  })()
                 ))
               )}
             </div>
@@ -1034,20 +1033,6 @@ function PlannerViewInner() {
         onSave={(payload) => void handleSaveReminder(payload)}
         reminder={editingReminder}
       />
-
-      <DestructiveConfirmDialog
-        theme={theme}
-        open={taskListPendingDeleteId != null}
-        titleId="confirm-delete-task-list-title"
-        title="Delete this task list?"
-        onCancel={() => setTaskListPendingDeleteId(null)}
-        onConfirm={() => void confirmDeleteTaskList()}
-      >
-        <p>
-          The list &quot;{pendingTaskListLabel}&quot; and all of its tasks will be
-          removed. This cannot be undone.
-        </p>
-      </DestructiveConfirmDialog>
     </div>
   );
 }

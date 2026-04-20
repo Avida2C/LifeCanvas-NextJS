@@ -147,7 +147,10 @@ export function FavoritesView() {
       <ScreenHeader title="Favorites" theme={theme} />
       <div className="flex-1 space-y-4 overflow-y-auto p-4 pb-24">
         {quotes.length === 0 ? (
-          <div className="py-16 text-center">
+          <div
+            className="rounded-2xl border-2 p-6 py-16 text-center"
+            style={{ borderColor: theme.border, backgroundColor: theme.card }}
+          >
             <div className="flex justify-center" aria-hidden>
               <Heart
                 className="size-16"
@@ -161,54 +164,56 @@ export function FavoritesView() {
             </p>
           </div>
         ) : (
-          quotes.map((quote, index) => {
-            const k = favoriteKind(quote);
-            const profile = isOnProfile(quote);
-            return (
-              <div
-                key={index}
-                className="border-b-2 p-4"
-                style={{
-                  backgroundColor: theme.card,
-                  borderColor: profile ? "#FFD700" : theme.border,
-                }}
-              >
-                {profile && (
-                  <span className="mb-2 inline-block rounded-full bg-yellow-400 px-3 py-1 text-[11px] font-bold text-black">
-                    ON PROFILE · {k === "affirmation" ? "Affirmation" : "Quote"}
-                  </span>
-                )}
-                <p className="italic" style={{ color: theme.text }}>
-                  &ldquo;{quote.quote}&rdquo;
-                </p>
-                {k === "quote" ? (
-                  <p className="mt-2 text-right text-sm" style={{ color: theme.textSecondary }}>
-                    — {quote.author}
+          <div className="space-y-2">
+            {quotes.map((quote, index) => {
+              const k = favoriteKind(quote);
+              const profile = isOnProfile(quote);
+              return (
+                <div
+                  key={index}
+                  className="rounded-xl border-2 px-3 py-2.5"
+                  style={{
+                    backgroundColor: theme.surface,
+                    borderColor: profile ? "#FFD700" : theme.border,
+                  }}
+                >
+                  {profile && (
+                    <span className="mb-2 inline-block rounded-full bg-yellow-400 px-3 py-1 text-[11px] font-bold text-black">
+                      ON PROFILE · {k === "affirmation" ? "Affirmation" : "Quote"}
+                    </span>
+                  )}
+                  <p className="italic" style={{ color: theme.text }}>
+                    &ldquo;{quote.quote}&rdquo;
                   </p>
-                ) : null}
-                <div className="mt-3 flex flex-wrap justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void toggleProfile(quote)}
-                    className="rounded-lg p-2"
-                    style={{ color: profile ? "#FFD700" : theme.primary }}
-                    aria-label={profile ? "Remove from profile" : "Show on Me profile"}
-                    title="Show on Me tab"
-                  >
-                    <Pin className={`size-6 ${profile ? "fill-yellow-400" : ""}`} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => requestRemove(quote)}
-                    className="rounded-lg p-2 text-red-500"
-                    aria-label="Remove from favorites"
-                  >
-                    <Heart className="size-6 fill-current" />
-                  </button>
+                  {k === "quote" ? (
+                    <p className="mt-2 text-right text-sm" style={{ color: theme.textSecondary }}>
+                      — {quote.author}
+                    </p>
+                  ) : null}
+                  <div className="mt-3 flex flex-wrap justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void toggleProfile(quote)}
+                      className="rounded-lg p-2"
+                      style={{ color: profile ? "#FFD700" : theme.primary }}
+                      aria-label={profile ? "Remove from profile" : "Show on Me profile"}
+                      title="Show on Me tab"
+                    >
+                      <Pin className={`size-6 ${profile ? "fill-yellow-400" : ""}`} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => requestRemove(quote)}
+                      className="rounded-lg p-2 text-red-500"
+                      aria-label="Remove from favorites"
+                    >
+                      <Heart className="size-6 fill-current" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </div>
         )}
       </div>
 

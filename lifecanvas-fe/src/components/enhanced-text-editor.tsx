@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { useTheme } from "@/components/providers/theme-provider";
+import { fileToEditorImageDataUrl } from "@/lib/media-utils";
 import type { Theme } from "@/lib/theme";
 
 export function EnhancedTextEditor({
@@ -80,9 +81,8 @@ export function EnhancedTextEditor({
     input.onchange = () => {
       const file = input.files?.[0];
       if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        const dataUrl = reader.result as string;
+      void (async () => {
+        const dataUrl = await fileToEditorImageDataUrl(file);
         const line =
           onImageAdd != null
             ? `\n![Image](lcimg:${nextImageIndex ?? 0})\n`
@@ -93,8 +93,7 @@ export function EnhancedTextEditor({
         const next = before + line + after;
         onChange(next);
         onImageAdd?.(dataUrl);
-      };
-      reader.readAsDataURL(file);
+      })();
     };
     input.click();
   };

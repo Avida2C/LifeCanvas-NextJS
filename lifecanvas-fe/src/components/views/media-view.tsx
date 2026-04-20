@@ -345,11 +345,11 @@ export function MediaView() {
         </div>
       ) : null}
       <div
-        className={`flex-1 overflow-y-auto p-2 pb-24 ${albumBanner ? "pt-14" : ""}`}
+        className={`flex-1 overflow-y-auto p-4 pb-24 ${albumBanner ? "pt-14" : ""}`}
       >
         {albums.length > 0 && (
-          <div className="mb-4">
-            <div className="mb-2 flex items-center justify-between gap-2 px-2">
+          <div className="mb-5">
+            <div className="mb-2 flex items-center justify-between gap-2">
               <p className="font-bold" style={{ color: theme.text }}>
                 Albums
               </p>
@@ -364,18 +364,22 @@ export function MediaView() {
               </button>
             </div>
             <div
-              className="-mx-2 snap-x snap-proximity overflow-x-auto overflow-y-visible scroll-smooth pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]"
-              style={{ scrollbarColor: `${theme.border} transparent` }}
+              className="rounded-2xl border-2 snap-x snap-proximity overflow-x-auto overflow-y-visible scroll-smooth p-2 pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]"
+              style={{
+                borderColor: theme.border,
+                backgroundColor: theme.card,
+                scrollbarColor: `${theme.border} transparent`,
+              }}
             >
-              <div className="flex w-max gap-2 px-2 pr-3">
+              <div className="flex w-max gap-2 pr-1">
                 {albums.map((a) => (
                   <Link
                     key={a.id}
                     href={`/album/${a.id}?name=${encodeURIComponent(a.name)}`}
-                    className="block w-[calc((min(100vw,42rem)-2rem)/4)] min-w-[3.75rem] max-w-[10rem] shrink-0 snap-start"
+                    className="block w-[calc((min(100vw,42rem)-3.5rem)/4)] min-w-[3.75rem] max-w-[10rem] shrink-0 snap-start"
                   >
                   <div
-                    className="aspect-square overflow-hidden rounded-lg border-2"
+                    className="aspect-square overflow-hidden rounded-xl border-2"
                     style={{ borderColor: theme.border }}
                   >
                     {a.coverPhotoUri ? (
@@ -421,55 +425,64 @@ export function MediaView() {
             </div>
           </div>
         )}
-        <p className="mb-2 px-2 font-bold" style={{ color: theme.text }}>
+        <p className="mb-2 font-bold" style={{ color: theme.text }}>
           All photos & videos
         </p>
-        <div className="grid grid-cols-4 gap-0.5">
-          {photos.map((p) => {
-            const profilePic = isPhotoUsedAsProfile(p);
-            return (
-              <button
-                key={p.id}
-                type="button"
-                className="relative aspect-square overflow-hidden"
-                onClick={() => openModal(p)}
-                aria-label={
-                  profilePic ? "Open photo (profile picture)" : "Open photo"
-                }
-              >
-                {isVideoDataUrl(p.uri) ? (
-                  <video
-                    src={p.uri}
-                    className="size-full object-cover"
-                    muted
-                    playsInline
-                    preload="metadata"
-                    controlsList="nodownload"
-                    draggable={false}
-                    onContextMenu={(e) => e.preventDefault()}
-                    aria-hidden
-                  />
-                ) : (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={p.uri} alt="" className="size-full object-cover" />
-                )}
-                {profilePic ? (
-                  <span
-                    className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center gap-0.5 bg-black/70 py-0.5 text-[0.6rem] font-bold leading-none text-white"
-                    aria-hidden
-                  >
-                    <User className="size-2.5 shrink-0" strokeWidth={2.5} />
-                    Profile
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
+        <div
+          className="rounded-2xl border-2 p-2"
+          style={{ borderColor: theme.border, backgroundColor: theme.card }}
+        >
+          <div className="grid grid-cols-4 gap-2">
+            {photos.map((p) => {
+              const profilePic = isPhotoUsedAsProfile(p);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  className="relative aspect-square overflow-hidden rounded-xl border-2"
+                  style={{ borderColor: theme.border }}
+                  onClick={() => openModal(p)}
+                  aria-label={
+                    profilePic ? "Open photo (profile picture)" : "Open photo"
+                  }
+                >
+                  {isVideoDataUrl(p.uri) ? (
+                    <video
+                      src={p.uri}
+                      className="size-full object-cover"
+                      muted
+                      playsInline
+                      preload="metadata"
+                      controlsList="nodownload"
+                      draggable={false}
+                      onContextMenu={(e) => e.preventDefault()}
+                      aria-hidden
+                    />
+                  ) : (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={p.uri} alt="" className="size-full object-cover" />
+                  )}
+                  {profilePic ? (
+                    <span
+                      className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center gap-0.5 bg-black/70 py-0.5 text-[0.6rem] font-bold leading-none text-white"
+                      aria-hidden
+                    >
+                      <User className="size-2.5 shrink-0" strokeWidth={2.5} />
+                      Profile
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
         </div>
         {photos.length === 0 && (
-          <p className="py-12 text-center text-sm" style={{ color: theme.textSecondary }}>
+          <div
+            className="mt-3 rounded-2xl border-2 p-4 py-12 text-center text-sm"
+            style={{ borderColor: theme.border, backgroundColor: theme.card, color: theme.textSecondary }}
+          >
             Add photos or videos with the + button
-          </p>
+          </div>
         )}
       </div>
 

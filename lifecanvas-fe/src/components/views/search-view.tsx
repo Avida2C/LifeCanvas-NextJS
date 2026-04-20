@@ -229,7 +229,7 @@ export function SearchView({
         />
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         {!q ? (
           <p className="py-8 text-center text-sm" style={{ color: theme.textSecondary }}>
             Type to search tasks, affirmations, quotes (and authors), saved
@@ -242,7 +242,10 @@ export function SearchView({
         ) : (
           <div className="space-y-6">
             {filteredTasks.length > 0 && (
-              <section>
+              <section
+                className="rounded-2xl border-2 p-3"
+                style={{ borderColor: theme.border, backgroundColor: theme.surface }}
+              >
                 <p
                   className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide"
                   style={{ color: theme.textSecondary }}
@@ -256,11 +259,11 @@ export function SearchView({
                       <Link
                         href={
                           list.id
-                            ? `/task-editor?id=${encodeURIComponent(list.id)}`
+                            ? `/task/${encodeURIComponent(list.id)}`
                             : "/planner?tab=tasks"
                         }
                         onClick={afterNav}
-                        className="block rounded-lg border-2 px-3 py-2.5 hover:opacity-90"
+                        className="block rounded-xl border-2 px-3 py-2.5 hover:opacity-90"
                         style={{
                           borderColor: theme.border,
                           backgroundColor: theme.card,
@@ -276,7 +279,10 @@ export function SearchView({
               </section>
             )}
             {filteredAffirmations.length > 0 && (
-              <section>
+              <section
+                className="rounded-2xl border-2 p-3"
+                style={{ borderColor: theme.border, backgroundColor: theme.surface }}
+              >
                 <p
                   className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide"
                   style={{ color: theme.textSecondary }}
@@ -290,7 +296,7 @@ export function SearchView({
                       <Link
                         href="/affirmations"
                         onClick={afterNav}
-                        className="block rounded-lg border-2 px-3 py-2.5 hover:opacity-90"
+                        className="block rounded-xl border-2 px-3 py-2.5 hover:opacity-90"
                         style={{
                           borderColor: theme.border,
                           backgroundColor: theme.card,
@@ -316,7 +322,10 @@ export function SearchView({
               </section>
             )}
             {filteredMyQuotes.length > 0 && (
-              <section>
+              <section
+                className="rounded-2xl border-2 p-3"
+                style={{ borderColor: theme.border, backgroundColor: theme.surface }}
+              >
                 <p
                   className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide"
                   style={{ color: theme.textSecondary }}
@@ -330,7 +339,7 @@ export function SearchView({
                       <Link
                         href="/created-by-me"
                         onClick={afterNav}
-                        className="block rounded-lg border-2 px-3 py-2.5 hover:opacity-90"
+                        className="block rounded-xl border-2 px-3 py-2.5 hover:opacity-90"
                         style={{
                           borderColor: theme.border,
                           backgroundColor: theme.card,
@@ -358,7 +367,10 @@ export function SearchView({
               </section>
             )}
             {filteredFavorites.length > 0 && (
-              <section>
+              <section
+                className="rounded-2xl border-2 p-3"
+                style={{ borderColor: theme.border, backgroundColor: theme.surface }}
+              >
                 <p
                   className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide"
                   style={{ color: theme.textSecondary }}
@@ -374,7 +386,7 @@ export function SearchView({
                       <Link
                         href="/favorites"
                         onClick={afterNav}
-                        className="block rounded-lg border-2 px-3 py-2.5 hover:opacity-90"
+                        className="block rounded-xl border-2 px-3 py-2.5 hover:opacity-90"
                         style={{
                           borderColor: theme.border,
                           backgroundColor: theme.card,

@@ -290,7 +290,10 @@ export function CreatedByMeView() {
       <ScreenHeader title="Created by me" theme={theme} />
       <div className="flex-1 space-y-4 overflow-y-auto p-4 pb-24">
         {totalCount === 0 ? (
-          <div className="py-16 text-center">
+          <div
+            className="rounded-2xl border-2 p-6 py-16 text-center"
+            style={{ borderColor: theme.border, backgroundColor: theme.card }}
+          >
             <div className="flex justify-center" aria-hidden>
               <Sparkles
                 className="size-16"
@@ -306,7 +309,8 @@ export function CreatedByMeView() {
             </p>
           </div>
         ) : (
-          rows.map((row) => {
+          <div className="space-y-2">
+            {rows.map((row) => {
             if (row.kind === "affirmation") {
               const a = row.item;
               const q = toQuoteFromAffirmation(a);
@@ -316,9 +320,9 @@ export function CreatedByMeView() {
               return (
                 <div
                   key={`a-${a.id}`}
-                  className="border-b-2 p-4"
+                  className="rounded-xl border-2 px-3 py-2.5"
                   style={{
-                    backgroundColor: theme.card,
+                    backgroundColor: theme.surface,
                     borderColor: profile ? "#FFD700" : theme.border,
                   }}
                 >
@@ -420,9 +424,9 @@ export function CreatedByMeView() {
             return (
               <div
                 key={`q-${item.id}`}
-                className="border-b-2 p-4"
+                className="rounded-xl border-2 px-3 py-2.5"
                 style={{
-                  backgroundColor: theme.card,
+                  backgroundColor: theme.surface,
                   borderColor: profile ? "#FFD700" : theme.border,
                 }}
               >
@@ -525,7 +529,8 @@ export function CreatedByMeView() {
                 )}
               </div>
             );
-          })
+            })}
+          </div>
         )}
       </div>
 

@@ -9,7 +9,8 @@ import { useTheme } from "@/components/providers/theme-provider";
 import {
   getJournalEntries,
   getNotes,
-  saveDataUrlToMediaGallery,
+  getPhotos,
+  saveDataUrlToMediaGalleryAndGetId,
   saveJournalEntry,
   saveNote,
 } from "@/lib/storage";
@@ -26,6 +27,8 @@ function EditorInner() {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [entryImages, setEntryImages] = useState<string[]>([]);
+
+  const isDataUrl = (v: string) => v.startsWith("data:image/") || v.startsWith("data:video/");
 
   useEffect(() => {
     if (!id) return;
@@ -52,8 +55,41 @@ function EditorInner() {
 
   const handleSave = async () => {
     if (!title.trim() || !content.trim()) return;
+    if (entryImages.some((ref) => ref.startsWith("uploading:"))) {
+      alert("Please wait for image uploads to finish.");
+      return;
+    }
     setLoading(true);
     const timestamp = new Date().toISOString();
+    const allPhotos = await getPhotos();
+    const knownIds = new Set(allPhotos.map((p) => p.id));
+    const cache = new Map<string, string>();
+    const normalizedImages: string[] = [];
+    for (const ref of entryImages) {
+      if (!ref) continue;
+      if (isDataUrl(ref)) {
+        const cachedId = cache.get(ref);
+        if (cachedId) {
+          normalizedImages.push(cachedId);
+          continue;
+        }
+        const savedId = await saveDataUrlToMediaGalleryAndGetId(ref, {
+          name: type === "journal" ? "Journal image" : "Note image",
+        });
+        if (savedId) {
+          cache.set(ref, savedId);
+          normalizedImages.push(savedId);
+          knownIds.add(savedId);
+          continue;
+        }
+        // Keep legacy ref if save failed so content does not lose image.
+        normalizedImages.push(ref);
+        continue;
+      }
+      if (knownIds.has(ref)) {
+        normalizedImages.push(ref);
+      }
+    }
     if (type === "journal") {
       const prev = id ? (await getJournalEntries()).find((e) => e.id === id) : null;
       const entry: JournalEntry = {
@@ -62,7 +98,7 @@ function EditorInner() {
         content: content.trim(),
         createdAt: prev?.createdAt ?? timestamp,
         updatedAt: timestamp,
-        images: entryImages,
+        images: normalizedImages,
       };
       await saveJournalEntry(entry);
     } else {
@@ -73,7 +109,7 @@ function EditorInner() {
         content: content.trim(),
         createdAt: prev?.createdAt ?? timestamp,
         updatedAt: timestamp,
-        images: entryImages,
+        images: normalizedImages,
       };
       await saveNote(note);
     }
@@ -121,10 +157,20 @@ function EditorInner() {
             onChange={setContent}
             placeholder={`Write your ${type}…`}
             onImageAdd={(uri) => {
-              setEntryImages((p) => [...p, uri]);
-              void saveDataUrlToMediaGallery(uri, {
-                name: type === "journal" ? "Journal image" : "Note image",
-              });
+              const tempRef = `uploading:${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+              setEntryImages((p) => [...p, tempRef]);
+              void (async () => {
+                const savedId = await saveDataUrlToMediaGalleryAndGetId(uri, {
+                  name: type === "journal" ? "Journal image" : "Note image",
+                });
+                setEntryImages((prev) => {
+                  const idx = prev.indexOf(tempRef);
+                  if (idx < 0) return prev;
+                  const next = [...prev];
+                  next[idx] = savedId ?? uri;
+                  return next;
+                });
+              })();
             }}
             nextImageIndex={entryImages.length}
             maxLength={type === "note" ? 2000 : undefined}

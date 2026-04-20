@@ -4,6 +4,7 @@ import { Heart, MessageCircle, Sparkles, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useTheme } from "@/components/providers/theme-provider";
+import { SegmentedTabs } from "@/components/ui/segmented-tabs";
 import { fetchAffirmations, fetchQuotes } from "@/lib/api";
 import {
   addFavorite,
@@ -82,6 +83,14 @@ export function InspireView() {
   const [affirmationDraft, setAffirmationDraft] = useState("");
   const [quoteDraft, setQuoteDraft] = useState("");
   const [authorDraft, setAuthorDraft] = useState("");
+  const INSPIRE_TABS = [
+    { id: "affirmations", label: "Affirmations" },
+    { id: "quotes", label: "Quotes" },
+  ] as const;
+  const CREATE_TABS = [
+    { id: "affirmation", label: "Affirmation" },
+    { id: "quote", label: "Quote" },
+  ] as const;
 
   const favoriteTexts = useCallback(async () => {
     const data = await getFavorites();
@@ -274,11 +283,11 @@ export function InspireView() {
       );
     }
     return (
-      <div className="space-y-3 p-3 pb-24">
+      <div className="space-y-3 p-4 pb-24">
         {list.map((item, i) => (
           <div
             key={i}
-            className="flex items-center gap-2 border-b-2 p-3"
+            className="flex items-center gap-2 rounded-2xl border-2 p-4"
             style={{ backgroundColor: theme.card, borderColor: theme.border }}
           >
             <div className="min-w-0 flex-1">
@@ -307,30 +316,12 @@ export function InspireView() {
   return (
     <div className="flex min-h-full flex-col" style={{ backgroundColor: theme.background }}>
       <div className="px-4 py-2" style={{ backgroundColor: theme.surface }}>
-        <div className="flex overflow-hidden rounded-lg border-2" style={{ borderColor: theme.border }}>
-          <button
-            type="button"
-            className="flex-1 py-2 text-sm font-semibold"
-            style={{
-              backgroundColor: tab === "affirmations" ? theme.primary : theme.surface,
-              color: tab === "affirmations" ? "#fff" : theme.text,
-            }}
-            onClick={() => setTab("affirmations")}
-          >
-            Affirmations
-          </button>
-          <button
-            type="button"
-            className="flex-1 py-2 text-sm font-semibold"
-            style={{
-              backgroundColor: tab === "quotes" ? theme.primary : theme.surface,
-              color: tab === "quotes" ? "#fff" : theme.text,
-            }}
-            onClick={() => setTab("quotes")}
-          >
-            Quotes
-          </button>
-        </div>
+        <SegmentedTabs
+          tabs={INSPIRE_TABS}
+          value={tab}
+          onChange={setTab}
+          theme={theme}
+        />
       </div>
       {tab === "affirmations" ? renderList(affirmations, true) : renderList(quotes, false)}
 
@@ -371,34 +362,12 @@ export function InspireView() {
             </div>
 
             <div className="shrink-0 px-4 pt-3">
-              <div
-                className="flex overflow-hidden rounded-lg border-2"
-                style={{ borderColor: theme.border }}
-              >
-                <button
-                  type="button"
-                  className="flex-1 py-2 text-sm font-semibold"
-                  style={{
-                    backgroundColor:
-                      createTab === "affirmation" ? theme.primary : theme.surface,
-                    color: createTab === "affirmation" ? "#fff" : theme.text,
-                  }}
-                  onClick={() => setCreateTab("affirmation")}
-                >
-                  Affirmation
-                </button>
-                <button
-                  type="button"
-                  className="flex-1 py-2 text-sm font-semibold"
-                  style={{
-                    backgroundColor: createTab === "quote" ? theme.primary : theme.surface,
-                    color: createTab === "quote" ? "#fff" : theme.text,
-                  }}
-                  onClick={() => setCreateTab("quote")}
-                >
-                  Quote
-                </button>
-              </div>
+              <SegmentedTabs
+                tabs={CREATE_TABS}
+                value={createTab}
+                onChange={setCreateTab}
+                theme={theme}
+              />
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">

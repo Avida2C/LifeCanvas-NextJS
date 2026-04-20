@@ -233,18 +233,32 @@ export async function saveDataUrlToMediaGallery(
   dataUrl: string,
   options?: { name?: string },
 ): Promise<boolean> {
+  const id = await saveDataUrlToMediaGalleryAndGetId(dataUrl, options);
+  return id != null;
+}
+
+/**
+ * Adds a data-URL image or video to All media and returns the stored media id.
+ * Returns null if invalid input or storage fails.
+ */
+export async function saveDataUrlToMediaGalleryAndGetId(
+  dataUrl: string,
+  options?: { name?: string; id?: string },
+): Promise<string | null> {
   if (
     !dataUrl.startsWith("data:image/") &&
     !dataUrl.startsWith("data:video/")
   ) {
-    return false;
+    return null;
   }
-  return savePhoto({
-    id: newGalleryPhotoId(),
+  const id = options?.id ?? newGalleryPhotoId();
+  const ok = await savePhoto({
+    id,
     uri: dataUrl,
     createdAt: new Date().toISOString(),
     name: options?.name,
   });
+  return ok ? id : null;
 }
 
 export const updatePhoto = async (id: string, updates: Partial<Photo>): Promise<void> => {
@@ -263,14 +277,14 @@ export const updatePhoto = async (id: string, updates: Partial<Photo>): Promise<
 function purgeImageUriFromNoteOrJournal(
   content: string,
   images: string[] | undefined,
-  deletedUri: string,
+  deleted: { id: string; uri: string },
 ): { content: string; images?: string[]; changed: boolean } {
   const imgs = images ?? [];
   const removedIndices = new Set<number>();
   imgs.forEach((u, i) => {
-    if (u === deletedUri) removedIndices.add(i);
+    if (u === deleted.id || u === deleted.uri) removedIndices.add(i);
   });
-  const newImages = imgs.filter((u) => u !== deletedUri);
+  const newImages = imgs.filter((u) => u !== deleted.id && u !== deleted.uri);
 
   const oldToNew = new Map<number, number>();
   imgs.forEach((u, i) => {
@@ -306,7 +320,7 @@ function purgeImageUriFromNoteOrJournal(
       continue;
     }
     const legacy = trimmed.match(/^!\[([^\]]*)\]\((.+)\)\s*$/);
-    if (legacy && legacy[2] === deletedUri) {
+    if (legacy && legacy[2] === deleted.uri) {
       changed = true;
       continue;
     }
@@ -322,6 +336,7 @@ function purgeImageUriFromNoteOrJournal(
 
 async function purgeReferencesToDeletedMedia(photo: Photo): Promise<void> {
   const uri = photo.uri;
+  const deleted = { id: photo.id, uri: photo.uri };
 
   try {
     const settings = await getUserSettings();
@@ -344,7 +359,7 @@ async function purgeReferencesToDeletedMedia(photo: Photo): Promise<void> {
     const notes = await getNotes();
     let notesChanged = false;
     const nextNotes = notes.map((note) => {
-      const r = purgeImageUriFromNoteOrJournal(note.content, note.images, uri);
+      const r = purgeImageUriFromNoteOrJournal(note.content, note.images, deleted);
       if (!r.changed) return note;
       notesChanged = true;
       return {
@@ -364,7 +379,7 @@ async function purgeReferencesToDeletedMedia(photo: Photo): Promise<void> {
     const journals = await getJournalEntries();
     let journalsChanged = false;
     const nextJournals = journals.map((entry) => {
-      const r = purgeImageUriFromNoteOrJournal(entry.content, entry.images, uri);
+      const r = purgeImageUriFromNoteOrJournal(entry.content, entry.images, deleted);
       if (!r.changed) return entry;
       journalsChanged = true;
       return {
@@ -420,7 +435,7 @@ export async function getPhotoDeleteImpact(
   try {
     const notes = await getNotes();
     for (const note of notes) {
-      if (purgeImageUriFromNoteOrJournal(note.content, note.images, uri).changed) {
+      if (purgeImageUriFromNoteOrJournal(note.content, note.images, { id: photo.id, uri }).changed) {
         noteEntriesAffected += 1;
       }
     }
@@ -433,7 +448,7 @@ export async function getPhotoDeleteImpact(
     const journals = await getJournalEntries();
     for (const entry of journals) {
       if (
-        purgeImageUriFromNoteOrJournal(entry.content, entry.images, uri).changed
+        purgeImageUriFromNoteOrJournal(entry.content, entry.images, { id: photo.id, uri }).changed
       ) {
         journalEntriesAffected += 1;
       }

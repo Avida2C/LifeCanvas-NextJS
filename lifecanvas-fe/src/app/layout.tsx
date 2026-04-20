@@ -1,18 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Condensed } from "next/font/google";
+import { IBM_Plex_Sans, IBM_Plex_Sans_Condensed } from "next/font/google";
 import { DesktopMobileFrame } from "@/components/layout/desktop-mobile-frame";
 import { AppProviders } from "@/components/providers/app-providers";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 /** Me tab quote/affirmation — matches Figma V1 typography */
 const quoteSans = IBM_Plex_Sans({
@@ -42,7 +32,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${quoteSans.variable} ${quoteCondensed.variable} h-full antialiased`}
+      className={`${quoteSans.variable} ${quoteCondensed.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
         <AppProviders>

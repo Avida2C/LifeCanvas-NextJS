@@ -1,6 +1,5 @@
 "use client";
 
-/* eslint-disable @next/next/no-img-element -- remote logo / OAuth assets */
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
@@ -16,13 +15,6 @@ import {
 import { useTheme } from "@/components/providers/theme-provider";
 import { DEFAULT_ACCENT } from "@/lib/theme";
 import { getUserSettings, saveUserSettings } from "@/lib/storage";
-
-const ASSET_LOGO =
-  "https://www.figma.com/api/mcp/asset/1dd9c0d5-eb3f-474e-a976-bb23b3a9bfe5";
-const ASSET_GOOGLE =
-  "https://www.figma.com/api/mcp/asset/c208277a-ed1c-46db-b1df-cef62e8f5cf8";
-const ASSET_FACEBOOK =
-  "https://www.figma.com/api/mcp/asset/8c873f01-a8f7-4006-9fef-5018394bfbbe";
 
 export function SignUpClient() {
   const { theme } = useTheme();
@@ -100,13 +92,12 @@ export function SignUpClient() {
           >
             Welcome to
           </p>
-          <div className="relative h-[62px] w-full max-w-[306px] shrink-0">
-            <img
-              alt="LifeCanvas"
-              className="absolute inset-0 size-full max-w-none object-contain"
-              src={ASSET_LOGO}
-            />
-          </div>
+          <p
+            className="font-brand w-full text-center text-[96px] leading-none"
+            style={{ color: theme.primary }}
+          >
+            LifeCanvas
+          </p>
           <p
             className="w-full max-w-md text-center text-base leading-relaxed"
             style={{ color: theme.textSecondary }}

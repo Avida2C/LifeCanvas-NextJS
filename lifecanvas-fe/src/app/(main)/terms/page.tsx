@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { TermsOfServiceContent } from "@/components/legal/terms-of-service-content";
 
 export const metadata: Metadata = {
-  title: "Terms and Conditions — Life Canvas",
-  description: "Terms and Conditions for using Life Canvas.",
+  title: "Terms and Conditions — LifeCanvas",
+  description: "Terms and Conditions for using LifeCanvas.",
 };
 
 export default function TermsPage() {

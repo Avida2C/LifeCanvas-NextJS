@@ -17,6 +17,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-quote-sans);
   --font-mono: var(--font-quote-condensed);
+  --font-brand: var(--font-brand-wordmark);
 }
 
 body {

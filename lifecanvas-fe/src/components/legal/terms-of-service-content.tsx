@@ -5,7 +5,7 @@ export function TermsOfServiceContent() {
       <section className="space-y-2">
         <h2 className="text-base font-semibold">1. Agreement</h2>
         <p>
-          These Terms and Conditions (&quot;Terms&quot;) govern your use of Life Canvas
+          These Terms and Conditions (&quot;Terms&quot;) govern your use of LifeCanvas
           (&quot;the Service&quot;), a local-first web experience for journaling, planning,
           and personal reflection. By using the Service you agree to these Terms.
         </p>
@@ -13,7 +13,7 @@ export function TermsOfServiceContent() {
       <section className="space-y-2">
         <h2 className="text-base font-semibold">2. The Service</h2>
         <p>
-          Life Canvas is provided for personal, non-commercial use unless we agree otherwise
+          LifeCanvas is provided for personal, non-commercial use unless we agree otherwise
           in writing. Features may change as the product evolves. This demo may store data
           only in your browser; you are responsible for your device and backups.
         </p>
@@ -45,7 +45,7 @@ export function TermsOfServiceContent() {
       <section className="space-y-2">
         <h2 className="text-base font-semibold">6. Limitation of liability</h2>
         <p>
-          To the maximum extent permitted by law, Life Canvas and its contributors will not
+          To the maximum extent permitted by law, LifeCanvas and its contributors will not
           be liable for indirect, incidental, special, consequential, or punitive damages,
           or any loss of data or profits arising from your use of the Service.
         </p>
@@ -62,7 +62,7 @@ export function TermsOfServiceContent() {
         <h2 className="text-base font-semibold">8. Contact</h2>
         <p>
           Questions about these Terms can be directed through the support channels we publish
-          for Life Canvas.
+          for LifeCanvas.
         </p>
       </section>
     </div>

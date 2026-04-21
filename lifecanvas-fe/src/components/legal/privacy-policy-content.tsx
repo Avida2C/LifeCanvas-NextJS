@@ -5,8 +5,8 @@ export function PrivacyPolicyContent() {
       <section className="space-y-2">
         <h2 className="text-base font-semibold">1. Overview</h2>
         <p>
-          This Privacy Policy describes how Life Canvas (&quot;we&quot;, &quot;us&quot;)
-          handles information when you use our web application. We designed Life Canvas to
+          This Privacy Policy describes how LifeCanvas (&quot;we&quot;, &quot;us&quot;)
+          handles information when you use our web application. We designed LifeCanvas to
           prioritize your privacy, including local storage of much of your activity in this
           demo build.
         </p>

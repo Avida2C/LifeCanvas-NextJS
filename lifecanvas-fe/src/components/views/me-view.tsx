@@ -573,7 +573,7 @@ export function MeView() {
           Your activity
         </h2>
         <p className="mb-3 text-sm" style={{ color: theme.textSecondary }}>
-          Life Canvas member
+          LifeCanvas member
           {userSettings?.memberSince ? ` · since ${userSettings.memberSince}` : ""}
         </p>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">

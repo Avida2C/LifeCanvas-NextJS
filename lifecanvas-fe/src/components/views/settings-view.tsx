@@ -210,8 +210,11 @@ export function SettingsView() {
           className="rounded-lg border-2 p-4"
           style={{ borderColor: theme.border, backgroundColor: theme.card }}
         >
-          <p className="font-medium" style={{ color: theme.text }}>
-            Life Canvas
+          <p
+            className="font-brand text-[96px] leading-none"
+            style={{ color: theme.primary }}
+          >
+            LifeCanvas
           </p>
           <p className="text-sm" style={{ color: theme.textSecondary }}>
             v1.0.0 (Web)
@@ -220,7 +223,7 @@ export function SettingsView() {
       </div>
 
       {tzOpen && (
-        <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/50 sm:items-center">
+        <div className="fixed inset-0 z-90 flex items-end justify-center bg-black/50 sm:items-center">
           <div
             className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border-2 p-4 sm:rounded-2xl"
             style={{ backgroundColor: theme.card, borderColor: theme.border }}

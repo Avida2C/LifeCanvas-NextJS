@@ -1,9 +1,10 @@
 "use client";
 
-/* eslint-disable @next/next/no-img-element -- remote logo / OAuth assets */
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { FaFacebook } from "react-icons/fa";
+import { FcGoogle } from "react-icons/fc";
 import {
   AuthInput,
   AuthOutlineButton,
@@ -14,13 +15,6 @@ import { useTheme } from "@/components/providers/theme-provider";
 import { buildDemoUserSettings, DEMO_ACCOUNT, isDemoLogin } from "@/lib/demo-account";
 import { DEFAULT_ACCENT } from "@/lib/theme";
 import { getUserSettings, saveUserSettings } from "@/lib/storage";
-
-const ASSET_LOGO =
-  "https://www.figma.com/api/mcp/asset/1dd9c0d5-eb3f-474e-a976-bb23b3a9bfe5";
-const ASSET_GOOGLE =
-  "https://www.figma.com/api/mcp/asset/c208277a-ed1c-46db-b1df-cef62e8f5cf8";
-const ASSET_FACEBOOK =
-  "https://www.figma.com/api/mcp/asset/8c873f01-a8f7-4006-9fef-5018394bfbbe";
 
 function displayNameFromEmail(email: string) {
   const trimmed = email.trim();
@@ -101,13 +95,12 @@ export function LoginClient() {
           >
             Welcome to
           </p>
-          <div className="relative h-[62px] w-full max-w-[306px] shrink-0">
-            <img
-              alt="LifeCanvas"
-              className="absolute inset-0 size-full max-w-none object-contain"
-              src={ASSET_LOGO}
-            />
-          </div>
+          <p
+            className="font-brand w-full text-center text-[96px] leading-none"
+            style={{ color: theme.primary }}
+          >
+            LifeCanvas
+          </p>
           <p
             className="w-full max-w-md text-center text-base leading-relaxed"
             style={{ color: theme.textSecondary }}
@@ -192,37 +185,39 @@ export function LoginClient() {
           </div>
         </div>
 
-        <div className="flex w-full max-w-md flex-col items-center gap-4 py-1">
+        <div className="flex w-full max-w-md flex-col gap-3 py-1">
           <p
             className="w-full text-center text-sm font-medium"
             style={{ color: theme.textSecondary }}
           >
-            Connect via Google or Facebook
+            Or continue with
           </p>
-          <div className="flex items-start gap-10">
-            <button
-              type="button"
-              className="relative flex size-12 items-center justify-center rounded-2xl border-2 transition-opacity hover:opacity-90"
-              style={{
-                borderColor: theme.border,
-                backgroundColor: theme.surface,
-              }}
-              aria-label="Continue with Facebook (coming soon)"
-            >
-              <img alt="" className="size-8 max-w-none object-contain" src={ASSET_FACEBOOK} />
-            </button>
-            <button
-              type="button"
-              className="relative flex size-12 items-center justify-center rounded-2xl border-2 transition-opacity hover:opacity-90"
-              style={{
-                borderColor: theme.border,
-                backgroundColor: theme.surface,
-              }}
-              aria-label="Continue with Google (coming soon)"
-            >
-              <img alt="" className="size-8 max-w-none object-contain" src={ASSET_GOOGLE} />
-            </button>
-          </div>
+          <button
+            type="button"
+            className="flex h-11 w-full items-center justify-center gap-3 rounded-xl border-2 text-base font-semibold transition-opacity hover:opacity-90"
+            style={{
+              borderColor: theme.border,
+              backgroundColor: theme.surface,
+              color: theme.text,
+            }}
+            aria-label="Log in with Facebook (coming soon)"
+          >
+            <FaFacebook className="size-6 shrink-0" style={{ color: "#1877F2" }} aria-hidden />
+            Log in with Facebook
+          </button>
+          <button
+            type="button"
+            className="flex h-11 w-full items-center justify-center gap-3 rounded-xl border-2 text-base font-semibold transition-opacity hover:opacity-90"
+            style={{
+              borderColor: theme.border,
+              backgroundColor: theme.surface,
+              color: theme.text,
+            }}
+            aria-label="Log in with Google (coming soon)"
+          >
+            <FcGoogle className="size-6 shrink-0" aria-hidden />
+            Log in with Google
+          </button>
         </div>
       </div>
     </AuthScreen>

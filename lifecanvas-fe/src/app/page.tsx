@@ -25,7 +25,7 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-screen flex-1 items-center justify-center text-sm text-neutral-500 dark:text-neutral-400">
-      Loading Life Canvas…
+      Loading LifeCanvas…
     </div>
   );
 }

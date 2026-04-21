@@ -1,4 +1,4 @@
-// Type definitions for Life Canvas app
+// Type definitions for LifeCanvas app
 
 import type { AccentId } from "@/lib/theme";
 

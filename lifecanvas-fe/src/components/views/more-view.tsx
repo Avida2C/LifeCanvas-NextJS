@@ -57,7 +57,7 @@ const legalLinks = [
   {
     href: "/terms",
     title: "Terms and Conditions",
-    subtitle: "Rules for using Life Canvas",
+    subtitle: "Rules for using LifeCanvas",
     Icon: Scale,
   },
   {
@@ -134,7 +134,7 @@ export function MoreView({
       key={rowKey}
       href={href}
       onClick={() => onNavigate?.()}
-      className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
+      className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-black/4 dark:hover:bg-white/6"
       style={{
         borderTop: showDivider ? `1px solid ${theme.divider}` : undefined,
       }}

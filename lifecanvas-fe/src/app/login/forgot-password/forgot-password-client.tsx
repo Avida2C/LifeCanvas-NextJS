@@ -1,6 +1,5 @@
 "use client";
 
-/* eslint-disable @next/next/no-img-element -- remote logo */
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
@@ -11,9 +10,6 @@ import {
 } from "@/components/auth/auth-ui";
 import { useTheme } from "@/components/providers/theme-provider";
 import { getUserSettings } from "@/lib/storage";
-
-const ASSET_LOGO =
-  "https://www.figma.com/api/mcp/asset/1dd9c0d5-eb3f-474e-a976-bb23b3a9bfe5";
 
 export function ForgotPasswordClient() {
   const { theme } = useTheme();
@@ -53,13 +49,12 @@ export function ForgotPasswordClient() {
     <AuthScreen theme={theme}>
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
         <div className="flex flex-col items-center gap-3">
-          <div className="relative h-12 w-full max-w-[240px]">
-            <img
-              alt="LifeCanvas"
-              className="absolute inset-0 size-full object-contain"
-              src={ASSET_LOGO}
-            />
-          </div>
+          <p
+            className="font-brand w-full text-center text-[96px] leading-none"
+            style={{ color: theme.primary }}
+          >
+            LifeCanvas
+          </p>
           <h1
             className="w-full text-center text-xl font-semibold leading-snug"
             style={{ color: theme.text }}

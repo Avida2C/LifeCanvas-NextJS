@@ -3,8 +3,8 @@ import Link from "next/link";
 import { PrivacyPolicyContent } from "@/components/legal/privacy-policy-content";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Life Canvas",
-  description: "Privacy Policy for Life Canvas.",
+  title: "Privacy Policy — LifeCanvas",
+  description: "Privacy Policy for LifeCanvas.",
 };
 
 export default function PrivacyPage() {
@@ -15,7 +15,7 @@ export default function PrivacyPage() {
           href="/me"
           className="text-sm font-medium text-[#eb6135] underline-offset-2 hover:underline"
         >
-          ← Life Canvas
+          ← LifeCanvas
         </Link>
         <h1 className="mt-3 text-xl font-bold text-neutral-900">Privacy Policy</h1>
       </header>

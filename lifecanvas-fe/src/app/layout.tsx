@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans, IBM_Plex_Sans_Condensed } from "next/font/google";
+import {
+  IBM_Plex_Sans,
+  IBM_Plex_Sans_Condensed,
+  Jolly_Lodger,
+} from "next/font/google";
 import { DesktopMobileFrame } from "@/components/layout/desktop-mobile-frame";
 import { AppProviders } from "@/components/providers/app-providers";
 import "./globals.css";
@@ -18,8 +22,15 @@ const quoteCondensed = IBM_Plex_Sans_Condensed({
   style: ["normal", "italic"],
 });
 
+/** Wordmark / logo */
+const brandWordmark = Jolly_Lodger({
+  variable: "--font-brand-wordmark",
+  subsets: ["latin"],
+  weight: "400",
+});
+
 export const metadata: Metadata = {
-  title: "Life Canvas",
+  title: "LifeCanvas",
   description: "Your personal journal and planner on the web.",
 };
 
@@ -32,7 +43,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${quoteSans.variable} ${quoteCondensed.variable} h-full antialiased`}
+      className={`${quoteSans.variable} ${quoteCondensed.variable} ${brandWordmark.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
         <AppProviders>

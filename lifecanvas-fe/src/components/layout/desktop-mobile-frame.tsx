@@ -53,7 +53,7 @@ function SideButton({
   return (
     <div
       aria-hidden
-      className={`w-[3px] rounded-sm bg-gradient-to-b from-neutral-500 via-neutral-600 to-neutral-700 ${heightClass} ${className}`}
+      className={`w-[3px] rounded-sm bg-linear-to-b from-neutral-500 via-neutral-600 to-neutral-700 ${heightClass} ${className}`}
     />
   );
 }
@@ -79,7 +79,7 @@ function DesktopMobileFrameInner({ children }: { children: ReactNode }) {
       {/* Studio-style backdrop */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#0c0e14] via-[#12151f] to-[#0a0b10]"
+        className="pointer-events-none absolute inset-0 bg-linear-to-b from-[#0c0e14] via-[#12151f] to-[#0a0b10]"
       />
       <div
         aria-hidden
@@ -104,7 +104,7 @@ function DesktopMobileFrameInner({ children }: { children: ReactNode }) {
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/25"
+        className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-black/25"
       />
 
       <div
@@ -128,7 +128,7 @@ function DesktopMobileFrameInner({ children }: { children: ReactNode }) {
         </div>
 
         {/* Device body: brushed metal / graphite shell */}
-        <div className="flex size-full flex-col overflow-hidden rounded-[2.65rem] border border-neutral-700/90 bg-gradient-to-b from-[#4a4a4f] via-[#353538] to-[#252528] p-[11px] ring-1 ring-inset ring-white/[0.06]">
+        <div className="flex size-full flex-col overflow-hidden rounded-[2.65rem] border border-neutral-700/90 bg-linear-to-b from-[#4a4a4f] via-[#353538] to-[#252528] p-[11px] ring-1 ring-inset ring-white/6">
           {/* Inner faceplate + screen stack */}
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2.05rem] border border-black/50 bg-[#0a0a0a]">
             {/* Top bezel + dynamic island */}
@@ -145,7 +145,7 @@ function DesktopMobileFrameInner({ children }: { children: ReactNode }) {
             <div className="min-h-0 flex-1 bg-black px-1.5 pb-1.5">
               <div className="size-full overflow-hidden rounded-b-[1.35rem] rounded-t-[0.65rem] bg-black ring-1 ring-neutral-900">
                 <iframe
-                  title="Life Canvas"
+                  title="LifeCanvas"
                   src={src}
                   className="block size-full border-0"
                   style={{ maxWidth: FRAME_MAX_W, maxHeight: FRAME_MAX_H }}

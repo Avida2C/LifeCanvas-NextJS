@@ -28,14 +28,9 @@ import {
   type ReactNode,
 } from "react";
 import { CustomCalendar, type MarkedDates } from "@/components/custom-calendar";
-import { ReminderModal, type ReminderSavePayload } from "@/components/reminder-modal";
 import { useTheme } from "@/components/providers/theme-provider";
 import { SegmentedTabs } from "@/components/ui/segmented-tabs";
 import { getRecurringDates } from "@/lib/planner-utils";
-import {
-  cancelNotification,
-  scheduleReminderNotification,
-} from "@/lib/notifications";
 import {
   deleteReminder,
   getJournalEntries,
@@ -43,7 +38,6 @@ import {
   getReminders,
   getTaskList,
   getTaskLists,
-  saveReminder,
   saveJournalEntry,
   saveNote,
   saveTaskList,
@@ -184,7 +178,6 @@ function PlannerViewInner() {
   const { theme } = useTheme();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const openReminder = searchParams.get("openReminder");
   const tabParam = searchParams.get("tab");
   const activeTab = plannerTabFromParam(tabParam);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -193,10 +186,6 @@ function PlannerViewInner() {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [selectedDate, setSelectedDate] = useState("");
   const [markedDates, setMarkedDates] = useState<MarkedDates>({});
-  const [showReminderModal, setShowReminderModal] = useState(false);
-  const [editingReminder, setEditingReminder] = useState<Reminder | undefined>(
-    undefined,
-  );
   const [refreshing, setRefreshing] = useState(false);
   const [reminderView, setReminderView] = useState<"upcoming" | "past">(
     "upcoming",
@@ -214,22 +203,6 @@ function PlannerViewInner() {
   );
   const [toPickerMonth, setToPickerMonth] = useState(new Date().getMonth());
   const [toPickerYear, setToPickerYear] = useState(new Date().getFullYear());
-  useEffect(() => {
-    if (!openReminder) return;
-    let cancelled = false;
-    void (async () => {
-      const t = new Date();
-      const d = `${t.getFullYear()}-${(t.getMonth() + 1).toString().padStart(2, "0")}-${t.getDate().toString().padStart(2, "0")}`;
-      if (cancelled) return;
-      setSelectedDate(d);
-      setShowReminderModal(true);
-      router.replace("/planner", { scroll: false });
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [openReminder, router]);
-
   const commitPlannerData = useCallback(
     (
       notesData: Note[],
@@ -242,6 +215,7 @@ function PlannerViewInner() {
       setTaskLists(taskListsData);
       setReminders(remindersData);
       const marks: MarkedDates = {};
+      // Mark every generated occurrence so repeating reminders appear on the calendar.
       remindersData.forEach((reminder) => {
         getRecurringDates(reminder, 730).forEach((date) => {
           marks[date] = { marked: true, dotColor: theme.primary };
@@ -292,56 +266,12 @@ function PlannerViewInner() {
 
   const handleDayPress = (dateString: string) => {
     setSelectedDate(dateString);
-    setEditingReminder(undefined);
-    setShowReminderModal(true);
+    router.push(`/reminder-editor?date=${dateString}`);
   };
 
   const handleEditReminder = (r: Reminder) => {
-    setEditingReminder(r);
     setSelectedDate(r.date);
-    setShowReminderModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setShowReminderModal(false);
-    setEditingReminder(undefined);
-  };
-
-  const handleSaveReminder = async (reminderData: ReminderSavePayload) => {
-    if (editingReminder) {
-      if (editingReminder.notificationId) {
-        await cancelNotification(editingReminder.notificationId);
-      }
-      const notificationId = await scheduleReminderNotification(
-        reminderData.title,
-        reminderData.description,
-        reminderData.date,
-        reminderData.time,
-      );
-      const updated: Reminder = {
-        ...editingReminder,
-        ...reminderData,
-        notificationId: notificationId ?? undefined,
-      };
-      await saveReminder(updated);
-    } else {
-      const notificationId = await scheduleReminderNotification(
-        reminderData.title,
-        reminderData.description,
-        reminderData.date,
-        reminderData.time,
-      );
-      const newR: Reminder = {
-        id: Date.now().toString(),
-        ...reminderData,
-        notificationId: notificationId ?? undefined,
-        createdAt: new Date().toISOString(),
-      };
-      await saveReminder(newR);
-    }
-    setEditingReminder(undefined);
-    await loadData();
-    handleCloseModal();
+    router.push(`/reminder-editor?id=${r.id}`);
   };
 
   const toggleInlineTask = async (listId: string, taskId: number) => {
@@ -358,6 +288,7 @@ function PlannerViewInner() {
     const out: ExpandedReminder[] = [];
     reminders.forEach((reminder) => {
       if (reminder.repeat && reminder.repeat !== "none") {
+        // Expand recurring reminders into concrete instances for list grouping/sorting.
         getRecurringDates(reminder, 730).forEach((date) => {
           out.push({
             ...reminder,
@@ -387,6 +318,7 @@ function PlannerViewInner() {
         if (reminderDate < fromD || reminderDate > toD) return false;
       }
       if (reminderView === "upcoming") {
+        // Default scope: only upcoming two weeks unless user asks to show all.
         if (!showAllUpcoming && !filterFromDate && !filterToDate) {
           return (
             reminderDateTime >= now && reminderDateTime <= twoWeeksFromNow
@@ -480,6 +412,7 @@ function PlannerViewInner() {
     const existing = notes.find((item) => item.id === noteId);
     if (!existing) return;
     const updated = { ...existing, isPinned: !existing.isPinned };
+    // Optimistic UI update; persist in background.
     setNotes((prev) => prev.map((item) => (item.id === noteId ? updated : item)));
     await saveNote(updated);
   };
@@ -758,8 +691,9 @@ function PlannerViewInner() {
                           >
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-bold">
-                                {reminder.time}
-                                {reminder.endTime ? ` - ${reminder.endTime}` : ""}{" "}
+                                {reminder.allDay
+                                  ? "All day"
+                                  : `${reminder.time}${reminder.endTime ? ` - ${reminder.endTime}` : ""}`}{" "}
                                 • {reminder.title}
                               </p>
                               {reminder.description ? (
@@ -1227,13 +1161,6 @@ function PlannerViewInner() {
         </div>
       )}
 
-      <ReminderModal
-        visible={showReminderModal}
-        date={selectedDate}
-        onClose={handleCloseModal}
-        onSave={(payload) => void handleSaveReminder(payload)}
-        reminder={editingReminder}
-      />
     </div>
   );
 }

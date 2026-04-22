@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { SignUpClient } from "./sign-up-client";
 
+/** Server entry for sign-up flow. */
 export default function SignUpPage() {
   return (
     <Suspense

@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { LoginClient } from "./login-client";
 
+/** Server entry for login, wrapped in Suspense for search param hydration. */
 export default function LoginPage() {
   return (
     <Suspense

@@ -16,6 +16,7 @@ import { useTheme } from "@/components/providers/theme-provider";
 import { DEFAULT_ACCENT } from "@/lib/theme";
 import { getUserSettings, saveUserSettings } from "@/lib/storage";
 
+/** Registration form for local profile bootstrap in the web build. */
 export function SignUpClient() {
   const { theme } = useTheme();
   const router = useRouter();
@@ -38,6 +39,7 @@ export function SignUpClient() {
     (async () => {
       const settings = await getUserSettings();
       if (cancelled) return;
+      // If a profile already exists, continue directly to app content.
       if (settings?.name) {
         router.replace(nextPath);
       }
@@ -68,6 +70,7 @@ export function SignUpClient() {
     const memberSince =
       existingSettings?.memberSince ?? new Date().getFullYear().toString();
 
+    // Preserve theme/timezone from prior local settings when present.
     await saveUserSettings({
       name: nick,
       nickname: nick,

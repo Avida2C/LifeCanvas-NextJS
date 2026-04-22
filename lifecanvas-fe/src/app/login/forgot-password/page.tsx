@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { ForgotPasswordClient } from "./forgot-password-client";
 
+/** Server entry for forgot-password flow. */
 export default function ForgotPasswordPage() {
   return (
     <Suspense

@@ -11,6 +11,7 @@ import type {
 
 export type ReminderSavePayload = Omit<Reminder, "id" | "createdAt">;
 
+/** Normalizes persisted reminder times into HH:mm for input controls. */
 function timeToInput(t: string): string {
   if (!t || !t.includes(":")) return "09:00";
   const [h, m] = t.split(":").map(Number);
@@ -24,6 +25,7 @@ function localDateString(d: Date) {
   return `${y}-${mo}-${da}`;
 }
 
+/** Reminder create/edit form shared by day tap and edit actions. */
 function ReminderModalForm({
   date,
   reminder,
@@ -99,7 +101,7 @@ function ReminderModalForm({
   const dayLabels = ["S", "M", "T", "W", "T", "F", "S"];
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center">
+    <div className="fixed inset-0 z-100 flex items-end justify-center sm:items-center">
       <button
         type="button"
         className="absolute inset-0 bg-black/50"
@@ -107,169 +109,224 @@ function ReminderModalForm({
         onClick={onClose}
       />
       <div
-        className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border-2 p-4 shadow-xl sm:rounded-2xl"
-        style={{ backgroundColor: theme.card, borderColor: theme.border }}
+        className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border-2 shadow-xl sm:rounded-2xl"
+        style={{ backgroundColor: theme.background, borderColor: theme.border }}
       >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold" style={{ color: theme.text }}>
-            {reminder ? "Edit reminder" : "New reminder"}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1"
-            style={{ color: theme.textSecondary }}
-            aria-label="Close"
-          >
-            <X className="size-6" />
-          </button>
+        <div
+          className="sticky top-0 z-10 border-b-2 px-4 py-3"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold" style={{ color: theme.text }}>
+                Reminder
+              </h2>
+              <p className="text-xs" style={{ color: theme.textSecondary }}>
+                {reminder ? "Edit reminder" : "Create new reminder"}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg p-1"
+              style={{ color: theme.textSecondary }}
+              aria-label="Close"
+            >
+              <X className="size-6" />
+            </button>
+          </div>
         </div>
 
-        <label className="block text-sm font-medium" style={{ color: theme.text }}>
-          Title
-        </label>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="mt-1 w-full rounded-lg border-2 px-3 py-2"
-          style={{
-            borderColor: theme.border,
-            backgroundColor: theme.surface,
-            color: theme.text,
-          }}
-        />
-
-        <label
-          className="mt-3 block text-sm font-medium"
-          style={{ color: theme.text }}
-        >
-          Description
-        </label>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={3}
-          className="mt-1 w-full rounded-lg border-2 px-3 py-2"
-          style={{
-            borderColor: theme.border,
-            backgroundColor: theme.surface,
-            color: theme.text,
-          }}
-        />
-
-        <div className="mt-3 grid grid-cols-2 gap-3">
+        <div className="space-y-4 p-4">
           <div>
-            <label className="text-sm font-medium" style={{ color: theme.text }}>
-              Date
+            <label className="text-sm font-bold" style={{ color: theme.text }}>
+              Title
             </label>
             <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="mt-1 w-full rounded-lg border-2 px-2 py-2"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="mt-1 w-full rounded-lg border-2 px-3 py-2"
               style={{
                 borderColor: theme.border,
                 backgroundColor: theme.surface,
                 color: theme.text,
               }}
+              placeholder="Reminder title"
             />
           </div>
+
           <div>
-            <label className="text-sm font-medium" style={{ color: theme.text }}>
-              Time
+            <label className="text-sm font-bold" style={{ color: theme.text }}>
+              Description
             </label>
-            <input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="mt-1 w-full rounded-lg border-2 px-2 py-2"
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              className="mt-1 w-full rounded-lg border-2 px-3 py-2"
               style={{
                 borderColor: theme.border,
                 backgroundColor: theme.surface,
                 color: theme.text,
               }}
+              placeholder="Optional details"
             />
           </div>
-        </div>
 
-        <label className="mt-3 flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={hasEndTime}
-            onChange={(e) => setHasEndTime(e.target.checked)}
-          />
-          <span style={{ color: theme.text }}>End time</span>
-        </label>
-        {hasEndTime ? (
-          <input
-            type="time"
-            value={endTime}
-            onChange={(e) => setEndTime(e.target.value)}
-            className="mt-2 w-full rounded-lg border-2 px-2 py-2"
-            style={{
-              borderColor: theme.border,
-              backgroundColor: theme.surface,
-              color: theme.text,
-            }}
-          />
-        ) : null}
-
-        <label className="mt-3 block text-sm font-medium" style={{ color: theme.text }}>
-          Repeat
-        </label>
-        <select
-          value={repeat}
-          onChange={(e) => setRepeat(e.target.value as ReminderRepeat)}
-          className="mt-1 w-full rounded-lg border-2 px-2 py-2"
-          style={{
-            borderColor: theme.border,
-            backgroundColor: theme.surface,
-            color: theme.text,
-          }}
-        >
-          <option value="none">None</option>
-          <option value="daily">Daily</option>
-          <option value="weekly">Weekly</option>
-          <option value="monthly">Monthly</option>
-          <option value="yearly">Yearly</option>
-        </select>
-
-        {(repeat === "daily" || repeat === "weekly") && (
-          <div className="mt-3">
-            <p className="text-sm font-medium" style={{ color: theme.text }}>
-              Days
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {dayLabels.map((label, idx) => (
-                <button
-                  key={label + idx}
-                  type="button"
-                  onClick={() => toggleDay(idx)}
-                  className="size-9 rounded-full text-sm font-semibold"
-                  style={{
-                    backgroundColor: selectedDays.includes(idx)
-                      ? theme.primary
-                      : theme.surface,
-                    color: selectedDays.includes(idx) ? "#fff" : theme.text,
-                    border: `2px solid ${theme.border}`,
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-bold" style={{ color: theme.text }}>
+                Date
+              </label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="mt-1 w-full rounded-lg border-2 px-2 py-2"
+                style={{
+                  borderColor: theme.border,
+                  backgroundColor: theme.surface,
+                  color: theme.text,
+                }}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-bold" style={{ color: theme.text }}>
+                Time
+              </label>
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="mt-1 w-full rounded-lg border-2 px-2 py-2"
+                style={{
+                  borderColor: theme.border,
+                  backgroundColor: theme.surface,
+                  color: theme.text,
+                }}
+              />
             </div>
           </div>
-        )}
 
-        {repeat !== "none" ? (
-          <div className="mt-3">
-            <label className="text-sm font-medium" style={{ color: theme.text }}>
-              Repeat end date (optional)
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={hasEndTime}
+              onChange={(e) => setHasEndTime(e.target.checked)}
+            />
+            <span style={{ color: theme.text }}>End time</span>
+          </label>
+          {hasEndTime ? (
+            <input
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              className="w-full rounded-lg border-2 px-2 py-2"
+              style={{
+                borderColor: theme.border,
+                backgroundColor: theme.surface,
+                color: theme.text,
+              }}
+            />
+          ) : null}
+
+          <div>
+            <label className="text-sm font-bold" style={{ color: theme.text }}>
+              Repeat
+            </label>
+            <select
+              value={repeat}
+              onChange={(e) => setRepeat(e.target.value as ReminderRepeat)}
+              className="mt-1 w-full rounded-lg border-2 px-2 py-2"
+              style={{
+                borderColor: theme.border,
+                backgroundColor: theme.surface,
+                color: theme.text,
+              }}
+            >
+              <option value="none">None</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+
+          {(repeat === "daily" || repeat === "weekly") && (
+            <div>
+              <p className="text-sm font-bold" style={{ color: theme.text }}>
+                Days
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {dayLabels.map((label, idx) => (
+                  <button
+                    key={label + idx}
+                    type="button"
+                    onClick={() => toggleDay(idx)}
+                    className="size-9 rounded-full text-sm font-semibold"
+                    style={{
+                      backgroundColor: selectedDays.includes(idx)
+                        ? theme.primary
+                        : theme.surface,
+                      color: selectedDays.includes(idx) ? "#fff" : theme.text,
+                      border: `2px solid ${theme.border}`,
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {repeat !== "none" ? (
+            <div>
+              <label className="text-sm font-bold" style={{ color: theme.text }}>
+                Repeat end date (optional)
+              </label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="mt-1 w-full rounded-lg border-2 px-2 py-2"
+                style={{
+                  borderColor: theme.border,
+                  backgroundColor: theme.surface,
+                  color: theme.text,
+                }}
+              />
+            </div>
+          ) : null}
+
+          <div>
+            <label className="text-sm font-bold" style={{ color: theme.text }}>
+              Priority
+            </label>
+            <select
+              value={priority}
+              onChange={(e) => setPriority(e.target.value as ReminderPriority)}
+              className="mt-1 w-full rounded-lg border-2 px-2 py-2"
+              style={{
+                borderColor: theme.border,
+                backgroundColor: theme.surface,
+                color: theme.text,
+              }}
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-sm font-bold" style={{ color: theme.text }}>
+              Advance notice (minutes, 0 = off)
             </label>
             <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              type="number"
+              min={0}
+              value={advanceNotice}
+              onChange={(e) => setAdvanceNotice(Number(e.target.value) || 0)}
               className="mt-1 w-full rounded-lg border-2 px-2 py-2"
               style={{
                 borderColor: theme.border,
@@ -278,79 +335,45 @@ function ReminderModalForm({
               }}
             />
           </div>
-        ) : null}
 
-        <label className="mt-3 block text-sm font-medium" style={{ color: theme.text }}>
-          Priority
-        </label>
-        <select
-          value={priority}
-          onChange={(e) => setPriority(e.target.value as ReminderPriority)}
-          className="mt-1 w-full rounded-lg border-2 px-2 py-2"
-          style={{
-            borderColor: theme.border,
-            backgroundColor: theme.surface,
-            color: theme.text,
-          }}
-        >
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-        </select>
+          <div className="space-y-2 rounded-xl border-2 p-3" style={{ borderColor: theme.border, backgroundColor: theme.surface }}>
+            <label className="flex items-center gap-2 text-sm" style={{ color: theme.text }}>
+              <input
+                type="checkbox"
+                checked={enableSound}
+                onChange={(e) => setEnableSound(e.target.checked)}
+              />
+              Sound (for future notifications)
+            </label>
+            <label className="flex items-center gap-2 text-sm" style={{ color: theme.text }}>
+              <input
+                type="checkbox"
+                checked={enableVibration}
+                onChange={(e) => setEnableVibration(e.target.checked)}
+              />
+              Vibration (for future notifications)
+            </label>
+          </div>
 
-        <label className="mt-3 block text-sm font-medium" style={{ color: theme.text }}>
-          Advance notice (minutes, 0 = off)
-        </label>
-        <input
-          type="number"
-          min={0}
-          value={advanceNotice}
-          onChange={(e) => setAdvanceNotice(Number(e.target.value) || 0)}
-          className="mt-1 w-full rounded-lg border-2 px-2 py-2"
-          style={{
-            borderColor: theme.border,
-            backgroundColor: theme.surface,
-            color: theme.text,
-          }}
-        />
-
-        <div className="mt-3 flex flex-col gap-2">
-          <label className="flex items-center gap-2 text-sm" style={{ color: theme.text }}>
-            <input
-              type="checkbox"
-              checked={enableSound}
-              onChange={(e) => setEnableSound(e.target.checked)}
-            />
-            Sound (for future notifications)
-          </label>
-          <label className="flex items-center gap-2 text-sm" style={{ color: theme.text }}>
-            <input
-              type="checkbox"
-              checked={enableVibration}
-              onChange={(e) => setEnableVibration(e.target.checked)}
-            />
-            Vibration (for future notifications)
-          </label>
-        </div>
-
-        <div className="mt-6 flex gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 rounded-lg border-2 py-3 font-semibold"
-            style={{ borderColor: theme.border, color: theme.textSecondary }}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!title.trim()}
-            className="flex-1 rounded-lg py-3 font-semibold text-white disabled:opacity-50"
-            style={{ backgroundColor: theme.primary }}
-          >
-            Save
-          </button>
+          <div className="flex gap-3 pb-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 rounded-lg border-2 py-3 font-semibold"
+              style={{ borderColor: theme.border, color: theme.textSecondary }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!title.trim()}
+              className="flex-1 rounded-lg py-3 font-semibold text-white disabled:opacity-50"
+              style={{ backgroundColor: theme.primary }}
+            >
+              {reminder ? "Update" : "Save"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

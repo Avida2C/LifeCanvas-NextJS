@@ -14,6 +14,7 @@ import {
 } from "@/lib/storage";
 import type { Quote } from "@/types";
 
+/** Shows favorited quotes/affirmations and lets user pin defaults. */
 function favoriteKind(q: Quote): "quote" | "affirmation" {
   return q.kind === "affirmation" ? "affirmation" : "quote";
 }

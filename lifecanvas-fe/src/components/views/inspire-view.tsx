@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, MessageCircle, Sparkles, X } from "lucide-react";
+import { Heart, MessageCircle, Sparkles } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useTheme } from "@/components/providers/theme-provider";
@@ -8,12 +8,10 @@ import { SegmentedTabs } from "@/components/ui/segmented-tabs";
 import { fetchAffirmations, fetchQuotes } from "@/lib/api";
 import {
   addFavorite,
-  addMyQuote,
   getAffirmations,
   getFavorites,
   getMyQuotes,
   removeFavorite,
-  saveAffirmation,
 } from "@/lib/storage";
 import type { Affirmation, Quote, UserCreatedQuote } from "@/types";
 
@@ -40,6 +38,7 @@ const dedupeQuotesByText = (quotes: Quote[]): Quote[] => {
 };
 
 function mergeAffirmationFeed(fromApi: Quote[], stored: Affirmation[]): Quote[] {
+  // User-authored affirmations are blended into the same feed as API data.
   const mine: Quote[] = stored.map((x) => ({
     quote: x.text,
     author: "Yours",
@@ -48,6 +47,7 @@ function mergeAffirmationFeed(fromApi: Quote[], stored: Affirmation[]): Quote[] 
 }
 
 function mergeQuoteFeed(fromApi: Quote[], stored: UserCreatedQuote[]): Quote[] {
+  // "Created by me" quotes are shown inline with fetched quotes.
   const mine: Quote[] = stored.map((m) => ({
     quote: m.quote,
     author: m.author?.trim() || "Unknown",
@@ -74,11 +74,6 @@ export function InspireView() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [affirmations, setAffirmations] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(false);
-
-  const [createOpen, setCreateOpen] = useState(false);
-  const [includeAuthor, setIncludeAuthor] = useState(false);
-  const [createTextDraft, setCreateTextDraft] = useState("");
-  const [authorDraft, setAuthorDraft] = useState("");
   const INSPIRE_TABS = [
     { id: "affirmations", label: "Affirmations" },
     { id: "quotes", label: "Quotes" },
@@ -98,6 +93,7 @@ export function InspireView() {
     const skipCache = opts?.skipCache ?? false;
 
     if (!skipCache && inspireFeedCache) {
+      // Render quickly from cache, then refresh from network in the background.
       const [favTexts, userAffs, userMq] = await Promise.all([
         favoriteTexts(),
         getAffirmations(),
@@ -147,53 +143,11 @@ export function InspireView() {
   }, [loadData]);
 
   useEffect(() => {
-    if (!createOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [createOpen]);
-
-  useEffect(() => {
-    if (!createOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setCreateOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [createOpen]);
-
-  const resetCreateForm = useCallback(() => {
-    setCreateTextDraft("");
-    setAuthorDraft("");
-    setIncludeAuthor(false);
-  }, []);
-
-  useEffect(() => {
     if (searchParams.get("create") !== "1") return;
-    resetCreateForm();
-    setIncludeAuthor(searchParams.get("kind") === "quote");
-    setCreateOpen(true);
-    router.replace("/inspire", { scroll: false });
-  }, [searchParams, router, resetCreateForm]);
-
-  const closeCreateModal = () => {
-    setCreateOpen(false);
-    resetCreateForm();
-  };
-
-  const submitCreatedItem = async () => {
-    const text = createTextDraft.trim();
-    if (!text) return;
-    if (includeAuthor) {
-      await addMyQuote(text, authorDraft);
-    } else {
-      await saveAffirmation(text);
-    }
-    closeCreateModal();
-    void loadData({ skipCache: true });
-  };
+    const kind = searchParams.get("kind");
+    const next = kind === "quote" ? "/inspire-editor?kind=quote" : "/inspire-editor";
+    router.replace(next, { scroll: false });
+  }, [searchParams, router]);
 
   const toggleFavorite = async (quoteText: string, isAffirmation: boolean) => {
     const list = isAffirmation ? affirmations : quotes;
@@ -220,6 +174,7 @@ export function InspireView() {
       );
       quote.exists = true;
     }
+    // Reload to keep favorites + feed ordering consistent after mutation.
     await loadData({ skipCache: true });
   };
 
@@ -309,117 +264,6 @@ export function InspireView() {
         />
       </div>
       {tab === "affirmations" ? renderList(affirmations, true) : renderList(quotes, false)}
-
-      {createOpen && (
-        <div
-          className="fixed inset-0 z-100 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
-          role="presentation"
-          onClick={closeCreateModal}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="inspire-create-title"
-            className="flex max-h-[min(90dvh,640px)] w-full max-w-md flex-col rounded-t-2xl border-2 shadow-2xl sm:rounded-2xl"
-            style={{
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
-              color: theme.text,
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              className="flex shrink-0 items-center justify-between gap-2 border-b-2 px-4 py-3"
-              style={{ borderColor: theme.border }}
-            >
-              <h2 id="inspire-create-title" className="text-lg font-bold">
-                Create new
-              </h2>
-              <button
-                type="button"
-                onClick={closeCreateModal}
-                className="rounded-lg p-2 hover:opacity-80"
-                style={{ color: theme.textSecondary }}
-                aria-label="Close"
-              >
-                <X className="size-5" strokeWidth={2.5} />
-              </button>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-              <div className="space-y-3">
-                <div>
-                  <label
-                    className="block text-xs font-semibold tracking-wide"
-                    style={{ color: theme.primary }}
-                    htmlFor="inspire-create-text"
-                  >
-                    {includeAuthor ? "Quote" : "Affirmation"}
-                  </label>
-                  <textarea
-                    id="inspire-create-text"
-                    value={createTextDraft}
-                    onChange={(e) => setCreateTextDraft(e.target.value)}
-                    rows={4}
-                    className="mt-1 w-full rounded-lg border-2 px-3 py-2"
-                    style={{
-                      borderColor: theme.border,
-                      backgroundColor: theme.background,
-                      color: theme.text,
-                    }}
-                    placeholder={includeAuthor ? "The quote text…" : "I am capable…"}
-                    autoFocus
-                  />
-                </div>
-                <label
-                  className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
-                  style={{ borderColor: theme.border, color: theme.text }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={includeAuthor}
-                    onChange={(e) => setIncludeAuthor(e.target.checked)}
-                    className="size-4"
-                  />
-                  Include author
-                </label>
-                {includeAuthor ? (
-                  <div>
-                    <label
-                      className="block text-xs font-semibold tracking-wide"
-                      style={{ color: theme.primary }}
-                      htmlFor="inspire-quote-text"
-                    >
-                      Author
-                    </label>
-                    <input
-                      id="inspire-quote-text"
-                      value={authorDraft}
-                      onChange={(e) => setAuthorDraft(e.target.value)}
-                      className="mt-1 w-full rounded-lg border-2 px-3 py-2 text-sm"
-                      style={{
-                        borderColor: theme.border,
-                        backgroundColor: theme.background,
-                        color: theme.text,
-                      }}
-                      placeholder="Who said it?"
-                    />
-                  </div>
-                ) : null}
-                <button
-                  type="button"
-                  disabled={!createTextDraft.trim()}
-                  onClick={() => void submitCreatedItem()}
-                  className="w-full rounded-lg px-4 py-2.5 font-semibold text-white disabled:opacity-50"
-                  style={{ backgroundColor: theme.primary }}
-                >
-                  {includeAuthor ? "Save quote" : "Add affirmation"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

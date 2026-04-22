@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getUserSettings } from "@/lib/storage";
 
+/** Entry route that forwards users to login or the main app. */
 export default function HomePage() {
   const router = useRouter();
 
@@ -12,6 +13,7 @@ export default function HomePage() {
     (async () => {
       const settings = await getUserSettings();
       if (cancelled) return;
+      // Presence of a stored profile name acts as local "signed-in" state.
       if (settings?.name) {
         router.replace("/me");
       } else {

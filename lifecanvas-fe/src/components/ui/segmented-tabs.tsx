@@ -7,6 +7,7 @@ export type SegmentedTabItem<T extends string> = {
   label: string;
 };
 
+/** Generic segmented control shared by Inspire/Planner tabs. */
 export function SegmentedTabs<T extends string>({
   tabs,
   value,

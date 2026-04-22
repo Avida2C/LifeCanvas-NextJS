@@ -53,6 +53,7 @@ export interface Reminder {
   title: string;
   description?: string;
   date: string; // ISO date string (start date for recurring)
+  allDay?: boolean; // True for all-day reminders without visible time range
   time: string; // Time in HH:MM format (start time)
   endTime?: string; // Optional end time in HH:MM format for time ranges
   notificationId?: string;

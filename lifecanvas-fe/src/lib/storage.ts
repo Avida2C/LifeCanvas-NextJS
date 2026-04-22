@@ -14,6 +14,7 @@ import { getAllPhotos, saveAllPhotos } from "@/lib/photos-idb";
 import { canUseAsAlbumCover, newGalleryPhotoId } from "@/lib/media-utils";
 
 const safeStorage = {
+  // SSR-safe wrapper: in non-browser contexts just return no-op values.
   async getItem(key: string): Promise<string | null> {
     if (typeof window === "undefined") return null;
     return window.localStorage.getItem(key);
@@ -286,6 +287,7 @@ function purgeImageUriFromNoteOrJournal(
   });
   const newImages = imgs.filter((u) => u !== deleted.id && u !== deleted.uri);
 
+  // Build an index remap so lcimg references still point at the right image.
   const oldToNew = new Map<number, number>();
   imgs.forEach((u, i) => {
     if (removedIndices.has(i)) return;
@@ -339,6 +341,7 @@ async function purgeReferencesToDeletedMedia(photo: Photo): Promise<void> {
   const deleted = { id: photo.id, uri: photo.uri };
 
   try {
+    // Clear profile avatar if this media is currently used there.
     const settings = await getUserSettings();
     if (
       settings &&
@@ -356,6 +359,7 @@ async function purgeReferencesToDeletedMedia(photo: Photo): Promise<void> {
   }
 
   try {
+    // Remove/rewire embedded image markers in notes.
     const notes = await getNotes();
     let notesChanged = false;
     const nextNotes = notes.map((note) => {
@@ -376,6 +380,7 @@ async function purgeReferencesToDeletedMedia(photo: Photo): Promise<void> {
   }
 
   try {
+    // Remove/rewire embedded image markers in journal entries.
     const journals = await getJournalEntries();
     let journalsChanged = false;
     const nextJournals = journals.map((entry) => {

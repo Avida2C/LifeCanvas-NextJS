@@ -13,6 +13,7 @@ function isEditableTarget(node: EventTarget | null) {
   );
 }
 
+/** Global client-only wrappers and DOM guards for the app root. */
 export function AppProviders({ children }: { children: ReactNode }) {
   useEffect(() => {
     const onContextMenu = (e: MouseEvent) => {

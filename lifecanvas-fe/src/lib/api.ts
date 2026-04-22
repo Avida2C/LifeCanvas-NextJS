@@ -3,6 +3,7 @@ import type { Quote } from "@/types";
 const API_NINJAS_KEY =
   process.env.NEXT_PUBLIC_API_NINJAS_KEY?.trim() ?? "";
 
+/** Fisher-Yates shuffle to keep fallback and API results varied. */
 const shuffleArray = <T>(array: T[]): T[] => {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -65,6 +66,7 @@ const FALLBACK_AFFIRMATIONS: Quote[] = [
 
 export const fetchQuotes = async (): Promise<Quote[]> => {
   try {
+    // Use local API route so key handling/rate limits can be managed server-side.
     const response = await fetch("/api/quote-garden", {
       method: "GET",
       headers: { Accept: "application/json" },
@@ -93,11 +95,13 @@ export const fetchQuotes = async (): Promise<Quote[]> => {
 };
 
 export const fetchAffirmations = async (): Promise<Quote[]> => {
+  // No key configured: stay fully offline with local fallback affirmations.
   if (!API_NINJAS_KEY) {
     return shuffleArray(FALLBACK_AFFIRMATIONS);
   }
 
   try {
+    // Probe once first so we can fail fast on invalid key/network issues.
     const testResponse = await fetch(
       "https://api.api-ninjas.com/v1/quotes?category=inspirational",
       {
@@ -127,6 +131,7 @@ export const fetchAffirmations = async (): Promise<Quote[]> => {
       Accept: "application/json",
     } as const;
 
+    // Fetch a few extra quotes in parallel; keep successful responses only.
     const extraSettled = await Promise.allSettled(
       Array.from({ length: 4 }, async () => {
         const response = await fetch(

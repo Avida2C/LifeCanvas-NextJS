@@ -41,6 +41,7 @@ import type {
   UserSettings,
 } from "@/types";
 
+/** User profile dashboard with stats, defaults, and avatar/media controls. */
 function parseFavoriteQuotes(raw: string[]): Quote[] {
   return raw.map((id) => {
     try {

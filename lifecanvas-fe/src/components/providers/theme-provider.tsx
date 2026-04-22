@@ -28,6 +28,7 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
+/** Loads persisted user theme prefs and exposes theme actions via context. */
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [accentId, setAccentId] = useState<AccentId>(DEFAULT_ACCENT);

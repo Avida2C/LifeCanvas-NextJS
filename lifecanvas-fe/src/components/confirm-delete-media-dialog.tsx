@@ -8,6 +8,7 @@ import { getPhotoDeleteImpact, type PhotoDeleteImpact } from "@/lib/storage";
 import type { Theme } from "@/lib/theme";
 import type { Photo } from "@/types";
 
+/** Computes and previews cross-feature impact before media deletion. */
 function ImpactLines({
   theme,
   impact,

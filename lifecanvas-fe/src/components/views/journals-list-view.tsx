@@ -16,6 +16,7 @@ export function JournalsListView() {
 
   const sortedJournals = useMemo(
     () =>
+      // Most recently touched entries first (updatedAt falls back to createdAt).
       [...allJournals].sort(
         (a, b) =>
           new Date(b.updatedAt || b.createdAt).getTime() -

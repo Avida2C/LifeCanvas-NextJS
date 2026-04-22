@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Trash2, X } from "lucide-react";
 import type { Theme } from "@/lib/theme";
 
+/** Shared destructive-action confirmation dialog (delete/remove flows). */
 export function DestructiveConfirmDialog({
   theme,
   open,

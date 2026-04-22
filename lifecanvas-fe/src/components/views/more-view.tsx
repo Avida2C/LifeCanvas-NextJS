@@ -68,6 +68,7 @@ const legalLinks = [
   },
 ] as const;
 
+/** Drawer-style menu for settings, library links, and legal pages. */
 function SectionLabel({
   children,
   theme,

@@ -14,6 +14,7 @@ type LegalModalProps = {
   onClose: () => void;
 };
 
+/** Reusable modal container for Terms and Privacy documents. */
 export function LegalModal({ open, kind, onClose }: LegalModalProps) {
   const { theme } = useTheme();
 

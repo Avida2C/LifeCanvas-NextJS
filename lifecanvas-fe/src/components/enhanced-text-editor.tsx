@@ -14,6 +14,7 @@ import { useTheme } from "@/components/providers/theme-provider";
 import { fileToEditorImageDataUrl } from "@/lib/media-utils";
 import type { Theme } from "@/lib/theme";
 
+/** Lightweight markdown helper toolbar + textarea editor for notes/journals. */
 export function EnhancedTextEditor({
   value,
   onChange,

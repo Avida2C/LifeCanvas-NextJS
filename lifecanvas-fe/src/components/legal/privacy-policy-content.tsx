@@ -1,3 +1,4 @@
+/** Static Privacy Policy body rendered inside the legal modal/page. */
 export function PrivacyPolicyContent() {
   return (
     <div className="space-y-4 text-sm leading-relaxed">

@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   description: "Terms and Conditions for using LifeCanvas.",
 };
 
+/** Full-page legal document route for terms and conditions. */
 export default function TermsPage() {
   return (
     <div className="min-h-0 bg-white text-neutral-800">

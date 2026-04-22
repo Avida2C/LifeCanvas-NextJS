@@ -42,6 +42,7 @@ import {
 } from "@/lib/storage";
 import type { Album, Photo } from "@/types";
 
+/** Media library home for uploads, albums, and profile-image operations. */
 function formatAlbumCreatedAt(iso: string): string {
   try {
     return new Date(iso).toLocaleString(undefined, {
@@ -624,7 +625,7 @@ export function MediaView() {
                       </div>
                     </div>
                     <div
-                      className="mt-3 border-t px-[0.2rem] pt-3"
+                      className="mt-3 border-t px-1 pt-3"
                       style={{ borderColor: theme.divider }}
                     >
                     <div className="flex min-w-0 flex-nowrap items-center justify-end gap-1 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
@@ -741,7 +742,7 @@ export function MediaView() {
               placeholder="Album name"
             />
             <div
-              className="mt-3 flex flex-nowrap justify-end gap-1 border-t px-[0.2rem] pt-3"
+              className="mt-3 flex flex-nowrap justify-end gap-1 border-t px-1 pt-3"
               style={{ borderColor: theme.divider }}
             >
               <button

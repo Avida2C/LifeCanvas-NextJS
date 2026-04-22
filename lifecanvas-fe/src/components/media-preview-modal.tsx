@@ -17,6 +17,7 @@ function formatAddedAt(iso: string): string {
   }
 }
 
+/** Fullscreen media preview with metadata editing and contextual actions. */
 export function MediaPreviewModal({
   theme,
   photo,
@@ -186,7 +187,7 @@ export function MediaPreviewModal({
               >
                 Actions
               </p>
-              <div className="flex w-full flex-col gap-2 px-[0.2rem]">
+              <div className="flex w-full flex-col gap-2 px-1">
                 {!isVideo && onUseAsProfilePhoto && !isProfilePicture ? (
                   <button
                     type="button"

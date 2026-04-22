@@ -15,6 +15,7 @@ import {
 } from "@/lib/storage";
 import type { Affirmation } from "@/types";
 
+/** CRUD view for user-created affirmations and default selection. */
 export function AffirmationsView() {
   const { theme } = useTheme();
   const [items, setItems] = useState<Affirmation[]>([]);

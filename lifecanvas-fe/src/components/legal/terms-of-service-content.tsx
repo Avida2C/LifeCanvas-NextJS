@@ -1,3 +1,4 @@
+/** Static Terms and Conditions body rendered inside the legal modal/page. */
 export function TermsOfServiceContent() {
   return (
     <div className="space-y-4 text-sm leading-relaxed">

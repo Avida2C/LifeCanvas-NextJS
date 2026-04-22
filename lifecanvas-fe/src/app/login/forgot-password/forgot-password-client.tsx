@@ -11,6 +11,7 @@ import {
 import { useTheme } from "@/components/providers/theme-provider";
 import { getUserSettings } from "@/lib/storage";
 
+/** Client-side placeholder reset flow (UI-only in current build). */
 export function ForgotPasswordClient() {
   const { theme } = useTheme();
   const router = useRouter();
@@ -30,6 +31,7 @@ export function ForgotPasswordClient() {
     (async () => {
       const settings = await getUserSettings();
       if (cancelled) return;
+      // Signed-in users do not need password reset entry screen.
       if (settings?.name) {
         router.replace(nextPath);
       }

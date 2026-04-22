@@ -28,6 +28,7 @@ import {
 } from "@/lib/storage";
 import type { Affirmation, Quote, UserCreatedQuote } from "@/types";
 
+/** Management view for user-authored affirmations and personal quotes. */
 async function findFavoriteStorageKey(quoteText: string): Promise<string | null> {
   const all = await getFavorites();
   for (const item of all) {

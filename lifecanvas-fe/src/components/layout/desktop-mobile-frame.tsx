@@ -58,6 +58,7 @@ function SideButton({
   );
 }
 
+/** Shows phone-like framed preview on desktop, plain app shell on mobile. */
 function DesktopMobileFrameInner({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();

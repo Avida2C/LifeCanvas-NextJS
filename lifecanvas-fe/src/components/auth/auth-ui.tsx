@@ -12,6 +12,7 @@ function cx(...parts: (string | false | undefined | null)[]) {
   return parts.filter(Boolean).join(" ");
 }
 
+/** Shared auth page shell used by login/register screens. */
 export function AuthScreen({
   theme,
   children,

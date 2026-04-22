@@ -5,6 +5,7 @@ import { ScreenHeader } from "@/components/screen-header";
 import { useTheme } from "@/components/providers/theme-provider";
 import { getFavorites, STORAGE_KEY_NAMES } from "@/lib/storage";
 
+/** Local troubleshooting tools for inspecting persisted browser data. */
 export function DebugView() {
   const { theme } = useTheme();
   const [output, setOutput] = useState("");

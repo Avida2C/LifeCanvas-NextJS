@@ -38,6 +38,7 @@ import {
 } from "@/lib/storage";
 import type { Photo } from "@/types";
 
+/** Album detail workspace for media management, cover, and profile usage actions. */
 export function AlbumDetailView({
   albumId,
   albumName,

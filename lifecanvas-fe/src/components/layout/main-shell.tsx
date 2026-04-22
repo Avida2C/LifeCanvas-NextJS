@@ -29,6 +29,7 @@ const primaryTabs = [
   { href: "/inspire", label: "Inspire", Icon: Send },
 ] as const;
 
+/** Main app chrome: top-level overlays, quick actions, and bottom nav. */
 export function MainShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -173,7 +174,7 @@ export function MainShell({ children }: { children: ReactNode }) {
                 }}
                 onClick={() => {
                   closeMenu();
-                  router.push("/planner?openReminder=1");
+                  router.push("/reminder-editor");
                 }}
               >
                 <BellRing className="size-5" strokeWidth={2} />
@@ -230,7 +231,7 @@ export function MainShell({ children }: { children: ReactNode }) {
                 }}
                 onClick={() => {
                   closeMenu();
-                  router.push("/inspire?create=1");
+                  router.push("/inspire-editor");
                 }}
               >
                 <Send className="size-5" strokeWidth={2} />

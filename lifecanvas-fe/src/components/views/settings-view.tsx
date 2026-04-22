@@ -57,6 +57,7 @@ export function SettingsView() {
     }
     setLoading(true);
     const email = settings.email?.trim() || undefined;
+    // Keep legacy `name` and newer `nickname` in sync for existing screens.
     const next: UserSettings = {
       ...settings,
       name: nickname,
@@ -73,6 +74,7 @@ export function SettingsView() {
 
   const tzLabel = () => {
     if (!settings.timezone) {
+      // "Automatic" follows the device/browser timezone.
       const device = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const info = TIMEZONES.find((t) => t.value === device);
       return `Automatic (${info?.label || device})`;

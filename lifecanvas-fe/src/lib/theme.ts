@@ -63,6 +63,7 @@ type AccentPatch = Pick<
   "primary" | "secondary" | "border" | "avatarBg" | "statNumber" | "fabBg"
 >;
 
+// Accent-specific overrides merged onto the selected light/dark base palette.
 const ACCENT_PATCH: Record<AccentId, { light: AccentPatch; dark: AccentPatch }> = {
   red: {
     light: {
@@ -225,12 +226,14 @@ export const ACCENT_OPTIONS: ReadonlyArray<{
   { id: "purple", label: "Purple", swatch: "#7c3aed" },
 ];
 
+/** Build the effective runtime theme by combining base mode + accent patch. */
 export function buildTheme(isDark: boolean, accent: AccentId): Theme {
   const base = isDark ? darkTheme : lightTheme;
   const patch = ACCENT_PATCH[accent][isDark ? "dark" : "light"];
   return { ...base, ...patch };
 }
 
+/** Parse persisted user value safely and fall back to default when invalid. */
 export function parseAccentId(value: unknown): AccentId {
   if (typeof value === "string" && value in ACCENT_PATCH) {
     return value as AccentId;

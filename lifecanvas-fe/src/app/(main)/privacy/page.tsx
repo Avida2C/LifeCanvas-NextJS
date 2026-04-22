@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   description: "Privacy Policy for LifeCanvas.",
 };
 
+/** Full-page legal document route for privacy policy. */
 export default function PrivacyPage() {
   return (
     <div className="min-h-0 bg-white text-neutral-800">

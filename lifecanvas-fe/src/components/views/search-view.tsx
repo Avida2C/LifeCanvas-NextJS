@@ -80,6 +80,7 @@ function parseFavorite(raw: string): Quote {
   }
 }
 
+/** Cross-library search overlay spanning favorites, tasks, and authored content. */
 export function SearchView({
   onDismiss,
   onNavigate,

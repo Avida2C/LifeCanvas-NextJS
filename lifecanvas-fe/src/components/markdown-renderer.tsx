@@ -3,6 +3,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { useTheme } from "@/components/providers/theme-provider";
 
+/** Minimal markdown parser for local note/journal rendering needs. */
 function parseInlineFormatting(
   text: string,
   keyBase: number,

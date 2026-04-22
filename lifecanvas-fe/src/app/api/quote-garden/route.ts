@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 const QUOTE_GARDEN_RANDOM =
   "https://quote-garden.onrender.com/api/v3/quotes/random?count=15";
+// Pull a batch at once so Inspire can render multiple fresh cards immediately.
 
 /**
  * Proxies Quote Garden so the client does not hit CORS / rate limits from the browser.

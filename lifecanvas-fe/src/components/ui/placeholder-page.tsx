@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useTheme } from "@/components/providers/theme-provider";
 
+/** Temporary scaffold for screens still being migrated from mobile app. */
 export function PlaceholderPage({
   title,
   description = "This screen is being ported from the Expo app. Navigation and data layers are wired for Next.js.",

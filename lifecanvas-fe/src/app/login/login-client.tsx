@@ -16,6 +16,7 @@ import { buildDemoUserSettings, DEMO_ACCOUNT, isDemoLogin } from "@/lib/demo-acc
 import { DEFAULT_ACCENT } from "@/lib/theme";
 import { getUserSettings, saveUserSettings } from "@/lib/storage";
 
+/** Fallback display name derivation for non-demo logins. */
 function displayNameFromEmail(email: string) {
   const trimmed = email.trim();
   if (!trimmed) return "";
@@ -37,6 +38,7 @@ export function LoginClient() {
     (async () => {
       const settings = await getUserSettings();
       if (cancelled) return;
+      // Already signed in: skip auth form and continue to the requested page.
       if (settings?.name) {
         router.replace(nextPath);
       }
@@ -56,6 +58,7 @@ export function LoginClient() {
       existingSettings?.memberSince ?? new Date().getFullYear().toString();
 
     if (isDemoLogin(e, p)) {
+      // Demo credentials load a fixed profile for quick product walkthroughs.
       await saveUserSettings(buildDemoUserSettings(existingSettings));
     } else {
       await saveUserSettings({

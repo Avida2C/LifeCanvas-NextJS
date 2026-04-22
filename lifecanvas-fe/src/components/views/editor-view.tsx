@@ -28,6 +28,7 @@ function EditorInner() {
   const [loading, setLoading] = useState(false);
   const [entryImages, setEntryImages] = useState<string[]>([]);
 
+  // Editor image refs may be either legacy data URLs or gallery media ids.
   const isDataUrl = (v: string) => v.startsWith("data:image/") || v.startsWith("data:video/");
 
   useEffect(() => {
@@ -63,6 +64,7 @@ function EditorInner() {
     const timestamp = new Date().toISOString();
     const allPhotos = await getPhotos();
     const knownIds = new Set(allPhotos.map((p) => p.id));
+    // Reuse id for duplicate data URLs in a single save to avoid duplicate media rows.
     const cache = new Map<string, string>();
     const normalizedImages: string[] = [];
     for (const ref of entryImages) {
@@ -159,6 +161,7 @@ function EditorInner() {
             onChange={setContent}
             placeholder={`Write your ${type}…`}
             onImageAdd={(uri) => {
+              // Keep image slot ordering stable while async media save resolves.
               const tempRef = `uploading:${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
               setEntryImages((p) => [...p, tempRef]);
               void (async () => {

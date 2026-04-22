@@ -8,6 +8,7 @@ export type MarkedDates = Record<
   { marked: boolean; dotColor?: string }
 >;
 
+/** Lightweight month calendar with marked-day dots used by Planner. */
 export function CustomCalendar({
   selectedDate,
   markedDates,

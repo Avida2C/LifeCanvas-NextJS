@@ -8,6 +8,7 @@ import { useTheme } from "@/components/providers/theme-provider";
 import { getTaskList, saveTaskList } from "@/lib/storage";
 import type { SubTask, TaskList } from "@/types";
 
+/** Task-list editor supporting create/update and inline subtasks editing. */
 function TaskEditorInner() {
   const { theme } = useTheme();
   const router = useRouter();
@@ -92,7 +93,7 @@ function TaskEditorInner() {
   return (
     <div className="flex min-h-full flex-col" style={{ backgroundColor: theme.background }}>
       <ScreenHeader
-        title="Task editor"
+        title="Task list"
         theme={theme}
         actions={[
           {
@@ -105,16 +106,16 @@ function TaskEditorInner() {
       />
       <div className="flex-1 space-y-4 overflow-y-auto p-4 pb-24">
         <div
-          className="border-2 p-3"
-          style={{ backgroundColor: theme.card, borderColor: theme.border }}
+          className="rounded-2xl border-2 p-4"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
         >
           <p className="mb-2 text-sm font-bold" style={{ color: theme.text }}>
-            List name
+            Title
           </p>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Groceries"
+            placeholder="e.g. Groceries, Weekend errands"
             className="w-full rounded-lg border-2 px-3 py-2"
             style={{
               borderColor: theme.border,
@@ -123,17 +124,25 @@ function TaskEditorInner() {
             }}
           />
         </div>
+
+        <div
+          className="rounded-2xl border-2 p-4"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
+          <p className="mb-3 text-sm font-bold" style={{ color: theme.text }}>
+            Tasks
+          </p>
         {taskList.tasks.map((task) => (
           <div
             key={task.id}
-            className="border-2 p-3"
-            style={{ backgroundColor: theme.card, borderColor: theme.border }}
+            className="mb-3 rounded-xl border-2 p-3 last:mb-0"
+            style={{ backgroundColor: theme.background, borderColor: theme.border }}
           >
             <div className="flex items-start gap-2">
               {taskList.tasks.length > 1 && (
                 <button
                   type="button"
-                  className="text-red-500"
+                  className="mt-1 rounded-lg p-1 text-red-500"
                   onClick={() => removeTask(task.id)}
                   aria-label="Remove"
                 >
@@ -150,7 +159,7 @@ function TaskEditorInner() {
                 <input
                   value={task.content}
                   onChange={(e) => updateContent(task.id, e.target.value)}
-                  placeholder="Task"
+                  placeholder="Task description"
                   className="w-full rounded-lg border-2 px-3 py-2"
                   style={{
                     borderColor: theme.border,
@@ -164,7 +173,7 @@ function TaskEditorInner() {
                     style={{ color: theme.textSecondary }}
                     htmlFor={`task-deadline-${task.id}`}
                   >
-                    Deadline
+                    Deadline (optional)
                   </label>
                   <input
                     id={`task-deadline-${task.id}`}
@@ -186,11 +195,12 @@ function TaskEditorInner() {
         <button
           type="button"
           onClick={addTask}
-          className="w-full rounded-lg border-2 py-2 font-semibold"
+          className="mt-1 w-full rounded-lg border-2 py-2 font-semibold"
           style={{ borderColor: theme.primary, color: theme.primary }}
         >
           + Add task
         </button>
+        </div>
         <div className="flex gap-3">
           <button
             type="button"

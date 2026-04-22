@@ -34,6 +34,7 @@ export const metadata: Metadata = {
   description: "Your personal journal and planner on the web.",
 };
 
+/** Root app shell: fonts, providers, and desktop framing wrapper. */
 export default function RootLayout({
   children,
 }: Readonly<{

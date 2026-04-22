@@ -28,6 +28,7 @@ export function TaskDetailView({ id }: { id: string }) {
 
   const orderedTasks = useMemo(() => {
     if (!taskList) return [];
+    // Keep incomplete tasks at the top for quicker interaction.
     return [
       ...taskList.tasks.filter((t) => !t.done),
       ...taskList.tasks.filter((t) => t.done),
@@ -42,6 +43,7 @@ export function TaskDetailView({ id }: { id: string }) {
         t.id === taskId ? { ...t, done: !t.done } : t,
       ),
     };
+    // Optimistic update for responsive checkbox toggling.
     setTaskList(updated);
     await saveTaskList(updated);
   };

@@ -32,6 +32,7 @@ export function NoteDetailView({ id }: { id: string }) {
     void (async () => {
       const photos = await getPhotos();
       const byId = new Map(photos.map((p) => [p.id, p.uri]));
+      // Resolve stored media ids to current URIs; preserve legacy inline data URLs.
       setImageSources(
         note.images
           .map((ref) =>

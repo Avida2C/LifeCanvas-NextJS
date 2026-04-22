@@ -4,6 +4,7 @@ import { ArrowLeft, LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { Theme } from "@/lib/theme";
 
+/** Standard sticky header with back action and optional trailing actions. */
 export function ScreenHeader({
   title,
   theme,

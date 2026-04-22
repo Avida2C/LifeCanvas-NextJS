@@ -63,7 +63,11 @@ function applyFavoriteFlags(items: Quote[], favTexts: string[]): Quote[] {
 }
 
 function quotesForCache(items: Quote[]): Quote[] {
-  return items.map(({ exists: _exists, ...rest }) => rest);
+  return items.map((item) => ({
+    quote: item.quote,
+    author: item.author,
+    kind: item.kind,
+  }));
 }
 
 export function InspireView() {

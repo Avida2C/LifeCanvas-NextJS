@@ -71,34 +71,31 @@ export function ConfirmDeleteMediaDialog({
   onCancel: () => void;
   onConfirm: () => void | Promise<void>;
 }) {
-  const [impact, setImpact] = useState<PhotoDeleteImpact | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [impactResult, setImpactResult] = useState<{
+    photoId: string;
+    impact: PhotoDeleteImpact;
+  } | null>(null);
 
   useEffect(() => {
-    if (!open || !photo) {
-      setImpact(null);
-      setLoading(false);
-      return;
-    }
+    if (!open || !photo) return;
     let cancelled = false;
-    setImpact(null);
-    setLoading(true);
     void getPhotoDeleteImpact(photo)
       .then((i) => {
         if (!cancelled) {
-          setImpact(i);
-          setLoading(false);
+          setImpactResult({ photoId: photo.id, impact: i });
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setImpact({
-            usedAsProfile: false,
-            noteEntriesAffected: 0,
-            journalEntriesAffected: 0,
-            albumCoversAffected: 0,
+          setImpactResult({
+            photoId: photo.id,
+            impact: {
+              usedAsProfile: false,
+              noteEntriesAffected: 0,
+              journalEntriesAffected: 0,
+              albumCoversAffected: 0,
+            },
           });
-          setLoading(false);
         }
       });
     return () => {
@@ -106,12 +103,14 @@ export function ConfirmDeleteMediaDialog({
     };
   }, [open, photo]);
 
+  const activeImpact = photo && impactResult?.photoId === photo.id ? impactResult.impact : null;
+  const loading = open && !!photo && !activeImpact;
   const hasCrossRefs =
-    impact &&
-    (impact.usedAsProfile ||
-      impact.noteEntriesAffected > 0 ||
-      impact.journalEntriesAffected > 0 ||
-      impact.albumCoversAffected > 0);
+    activeImpact &&
+    (activeImpact.usedAsProfile ||
+      activeImpact.noteEntriesAffected > 0 ||
+      activeImpact.journalEntriesAffected > 0 ||
+      activeImpact.albumCoversAffected > 0);
 
   const kind = photo && isVideoDataUrl(photo.uri) ? "video" : "photo";
 
@@ -138,9 +137,9 @@ export function ConfirmDeleteMediaDialog({
             Checking where it’s used…
           </p>
         ) : null}
-        {!loading && impact ? (
+        {!loading && activeImpact ? (
           <>
-            <ImpactLines theme={theme} impact={impact} />
+            <ImpactLines theme={theme} impact={activeImpact} />
             {hasCrossRefs ? (
               <p className="mt-3 text-xs font-semibold" style={{ color: theme.text }}>
                 It will be removed everywhere it appears.

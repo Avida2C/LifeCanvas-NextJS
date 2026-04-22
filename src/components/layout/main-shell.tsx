@@ -16,7 +16,7 @@ import {
   User,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { useTheme } from "@/components/providers/theme-provider";
 import { MoreView } from "@/components/views/more-view";
 import { SearchView } from "@/components/views/search-view";
@@ -54,31 +54,26 @@ export function MainShell({ children }: { children: ReactNode }) {
     return false;
   }, [pathname]);
 
-  useEffect(() => {
-    if (hideChrome) {
-      setMenuOpen(false);
-      setSearchOpen(false);
-      setMoreOpen(false);
-    }
-  }, [hideChrome]);
-
   const openCreateMenu = useCallback(() => {
+    if (hideChrome) return;
     setSearchOpen(false);
     setMoreOpen(false);
     setMenuOpen((o) => !o);
-  }, []);
+  }, [hideChrome]);
 
   const toggleSearch = useCallback(() => {
+    if (hideChrome) return;
     setMenuOpen(false);
     setMoreOpen(false);
     setSearchOpen((o) => !o);
-  }, []);
+  }, [hideChrome]);
 
   const toggleMore = useCallback(() => {
+    if (hideChrome) return;
     setMenuOpen(false);
     setSearchOpen(false);
     setMoreOpen((o) => !o);
-  }, []);
+  }, [hideChrome]);
 
   const pickMediaUpload = useCallback(() => {
     const input = document.createElement("input");
@@ -111,8 +106,8 @@ export function MainShell({ children }: { children: ReactNode }) {
     input.click();
   }, [closeMenu, router]);
 
-  const overlayOpen = searchOpen || moreOpen;
-  const createOverlayOpen = menuOpen;
+  const overlayOpen = !hideChrome && (searchOpen || moreOpen);
+  const createOverlayOpen = !hideChrome && menuOpen;
 
   return (
     <div

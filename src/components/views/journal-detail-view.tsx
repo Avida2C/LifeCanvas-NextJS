@@ -25,16 +25,14 @@ export function JournalDetailView({ id }: { id: string }) {
   }, [id]);
 
   useEffect(() => {
-    if (!entry?.images?.length) {
-      setImageSources([]);
-      return;
-    }
+    const imageRefs = entry?.images ?? [];
+    if (!imageRefs.length) return;
     void (async () => {
       const photos = await getPhotos();
       const byId = new Map(photos.map((p) => [p.id, p.uri]));
       // Resolve stored media ids to current URIs; preserve legacy inline data URLs.
       setImageSources(
-        entry.images
+        imageRefs
           .map((ref) =>
             ref.startsWith("data:image/") || ref.startsWith("data:video/")
               ? ref
@@ -92,7 +90,10 @@ export function JournalDetailView({ id }: { id: string }) {
           className="rounded-2xl border-2 p-5"
           style={{ borderColor: theme.border, backgroundColor: theme.surface }}
         >
-          <MarkdownRenderer content={entry.content} imageSources={imageSources} />
+          <MarkdownRenderer
+            content={entry.content}
+            imageSources={entry.images?.length ? imageSources : []}
+          />
         </div>
       </div>
 

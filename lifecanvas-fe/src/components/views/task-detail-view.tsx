@@ -113,9 +113,16 @@ export function TaskDetailView({ id }: { id: string }) {
                   >
                     {task.done ? "✓" : ""}
                   </button>
-                  <span className={task.done ? "line-through opacity-60" : ""}>
-                    {task.content || "Empty task"}
-                  </span>
+                  <div className="min-w-0">
+                    <p className={task.done ? "line-through opacity-60" : ""}>
+                      {task.content || "Empty task"}
+                    </p>
+                    {task.deadline ? (
+                      <p className="text-xs" style={{ color: theme.textSecondary }}>
+                        Deadline: {new Date(`${task.deadline}T00:00:00`).toLocaleDateString()}
+                      </p>
+                    ) : null}
+                  </div>
                 </label>
               ))}
             </div>

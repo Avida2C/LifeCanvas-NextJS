@@ -217,7 +217,7 @@ export function SettingsView() {
             LifeCanvas
           </p>
           <p className="text-sm" style={{ color: theme.textSecondary }}>
-            v1.0.0 (Web)
+            v2.0.0 (Web)
           </p>
         </div>
       </div>

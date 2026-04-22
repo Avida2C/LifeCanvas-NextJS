@@ -9,6 +9,7 @@ export interface JournalEntry {
   createdAt: string;
   updatedAt: string;
   images?: string[]; // Array of image IDs from the gallery
+  isPinned?: boolean;
 }
 
 export interface Note {
@@ -18,6 +19,7 @@ export interface Note {
   createdAt: string;
   updatedAt: string;
   images?: string[]; // Array of image IDs from the gallery
+  isPinned?: boolean;
 }
 
 export interface Task {
@@ -33,12 +35,14 @@ export interface SubTask {
   id: number;
   content: string;
   done: boolean;
+  deadline?: string; // ISO date string (YYYY-MM-DD)
 }
 
 export interface TaskList {
   id: string | null;
   title?: string;
   tasks: SubTask[];
+  isPinned?: boolean;
 }
 
 export type ReminderRepeat = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';

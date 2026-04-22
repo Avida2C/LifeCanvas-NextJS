@@ -63,10 +63,7 @@ function applyFavoriteFlags(items: Quote[], favTexts: string[]): Quote[] {
 }
 
 function quotesForCache(items: Quote[]): Quote[] {
-  return items.map((x) => {
-    const { exists: _e, ...rest } = x;
-    return rest;
-  });
+  return items.map(({ exists: _exists, ...rest }) => rest);
 }
 
 export function InspireView() {
@@ -79,19 +76,13 @@ export function InspireView() {
   const [loading, setLoading] = useState(false);
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [createTab, setCreateTab] = useState<"affirmation" | "quote">("affirmation");
-  const [affirmationDraft, setAffirmationDraft] = useState("");
-  const [quoteDraft, setQuoteDraft] = useState("");
+  const [includeAuthor, setIncludeAuthor] = useState(false);
+  const [createTextDraft, setCreateTextDraft] = useState("");
   const [authorDraft, setAuthorDraft] = useState("");
   const INSPIRE_TABS = [
     { id: "affirmations", label: "Affirmations" },
     { id: "quotes", label: "Quotes" },
   ] as const;
-  const CREATE_TABS = [
-    { id: "affirmation", label: "Affirmation" },
-    { id: "quote", label: "Quote" },
-  ] as const;
-
   const favoriteTexts = useCallback(async () => {
     const data = await getFavorites();
     return data.map((item) => {
@@ -174,17 +165,15 @@ export function InspireView() {
   }, [createOpen]);
 
   const resetCreateForm = useCallback(() => {
-    setAffirmationDraft("");
-    setQuoteDraft("");
+    setCreateTextDraft("");
     setAuthorDraft("");
+    setIncludeAuthor(false);
   }, []);
 
   useEffect(() => {
     if (searchParams.get("create") !== "1") return;
-    setCreateTab(
-      searchParams.get("kind") === "quote" ? "quote" : "affirmation",
-    );
     resetCreateForm();
+    setIncludeAuthor(searchParams.get("kind") === "quote");
     setCreateOpen(true);
     router.replace("/inspire", { scroll: false });
   }, [searchParams, router, resetCreateForm]);
@@ -194,18 +183,14 @@ export function InspireView() {
     resetCreateForm();
   };
 
-  const submitAffirmation = async () => {
-    const text = affirmationDraft.trim();
+  const submitCreatedItem = async () => {
+    const text = createTextDraft.trim();
     if (!text) return;
-    await saveAffirmation(text);
-    closeCreateModal();
-    void loadData({ skipCache: true });
-  };
-
-  const submitQuote = async () => {
-    const q = quoteDraft.trim();
-    if (!q) return;
-    await addMyQuote(q, authorDraft);
+    if (includeAuthor) {
+      await addMyQuote(text, authorDraft);
+    } else {
+      await saveAffirmation(text);
+    }
     closeCreateModal();
     void loadData({ skipCache: true });
   };
@@ -361,76 +346,54 @@ export function InspireView() {
               </button>
             </div>
 
-            <div className="shrink-0 px-4 pt-3">
-              <SegmentedTabs
-                tabs={CREATE_TABS}
-                value={createTab}
-                onChange={setCreateTab}
-                theme={theme}
-              />
-            </div>
-
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-              {createTab === "affirmation" ? (
-                <div className="space-y-3">
+              <div className="space-y-3">
+                <div>
+                  <label
+                    className="block text-xs font-semibold tracking-wide"
+                    style={{ color: theme.primary }}
+                    htmlFor="inspire-create-text"
+                  >
+                    {includeAuthor ? "Quote" : "Affirmation"}
+                  </label>
                   <textarea
-                    value={affirmationDraft}
-                    onChange={(e) => setAffirmationDraft(e.target.value)}
+                    id="inspire-create-text"
+                    value={createTextDraft}
+                    onChange={(e) => setCreateTextDraft(e.target.value)}
                     rows={4}
-                    className="w-full rounded-lg border-2 px-3 py-2"
+                    className="mt-1 w-full rounded-lg border-2 px-3 py-2"
                     style={{
                       borderColor: theme.border,
                       backgroundColor: theme.background,
                       color: theme.text,
                     }}
-                    placeholder="I am capable…"
+                    placeholder={includeAuthor ? "The quote text…" : "I am capable…"}
                     autoFocus
                   />
-                  <button
-                    type="button"
-                    disabled={!affirmationDraft.trim()}
-                    onClick={() => void submitAffirmation()}
-                    className="w-full rounded-lg px-4 py-2.5 font-semibold text-white disabled:opacity-50"
-                    style={{ backgroundColor: theme.primary }}
-                  >
-                    Add affirmation
-                  </button>
                 </div>
-              ) : (
-                <div className="space-y-3">
+                <label
+                  className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
+                  style={{ borderColor: theme.border, color: theme.text }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={includeAuthor}
+                    onChange={(e) => setIncludeAuthor(e.target.checked)}
+                    className="size-4"
+                  />
+                  Include author
+                </label>
+                {includeAuthor ? (
                   <div>
                     <label
                       className="block text-xs font-semibold tracking-wide"
                       style={{ color: theme.primary }}
                       htmlFor="inspire-quote-text"
                     >
-                      Quote
-                    </label>
-                    <textarea
-                      id="inspire-quote-text"
-                      value={quoteDraft}
-                      onChange={(e) => setQuoteDraft(e.target.value)}
-                      rows={3}
-                      className="mt-1 w-full rounded-lg border-2 px-3 py-2 text-sm"
-                      style={{
-                        borderColor: theme.border,
-                        backgroundColor: theme.background,
-                        color: theme.text,
-                      }}
-                      placeholder="The quote text…"
-                      autoFocus
-                    />
-                  </div>
-                  <div>
-                    <label
-                      className="block text-xs font-semibold tracking-wide"
-                      style={{ color: theme.primary }}
-                      htmlFor="inspire-quote-author"
-                    >
                       Author
                     </label>
                     <input
-                      id="inspire-quote-author"
+                      id="inspire-quote-text"
                       value={authorDraft}
                       onChange={(e) => setAuthorDraft(e.target.value)}
                       className="mt-1 w-full rounded-lg border-2 px-3 py-2 text-sm"
@@ -442,17 +405,17 @@ export function InspireView() {
                       placeholder="Who said it?"
                     />
                   </div>
-                  <button
-                    type="button"
-                    disabled={!quoteDraft.trim()}
-                    onClick={() => void submitQuote()}
-                    className="w-full rounded-lg px-4 py-2.5 font-semibold text-white disabled:opacity-50"
-                    style={{ backgroundColor: theme.primary }}
-                  >
-                    Save quote
-                  </button>
-                </div>
-              )}
+                ) : null}
+                <button
+                  type="button"
+                  disabled={!createTextDraft.trim()}
+                  onClick={() => void submitCreatedItem()}
+                  className="w-full rounded-lg px-4 py-2.5 font-semibold text-white disabled:opacity-50"
+                  style={{ backgroundColor: theme.primary }}
+                >
+                  {includeAuthor ? "Save quote" : "Add affirmation"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

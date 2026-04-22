@@ -99,6 +99,7 @@ function EditorInner() {
         createdAt: prev?.createdAt ?? timestamp,
         updatedAt: timestamp,
         images: normalizedImages,
+        isPinned: prev?.isPinned,
       };
       await saveJournalEntry(entry);
     } else {
@@ -110,6 +111,7 @@ function EditorInner() {
         createdAt: prev?.createdAt ?? timestamp,
         updatedAt: timestamp,
         images: normalizedImages,
+        isPinned: prev?.isPinned,
       };
       await saveNote(note);
     }

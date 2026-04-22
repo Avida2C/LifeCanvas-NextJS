@@ -10,6 +10,8 @@ import {
   FilterX,
   ListChecks,
   Pencil,
+  Pin,
+  PinOff,
   Repeat,
   ScrollText,
   Trash2,
@@ -42,6 +44,8 @@ import {
   getTaskList,
   getTaskLists,
   saveReminder,
+  saveJournalEntry,
+  saveNote,
   saveTaskList,
 } from "@/lib/storage";
 import type { Theme } from "@/lib/theme";
@@ -445,6 +449,57 @@ function PlannerViewInner() {
     [journals],
   );
 
+  const pinnedNotes = useMemo(
+    () => sortedNotes.filter((note) => note.isPinned),
+    [sortedNotes],
+  );
+  const unpinnedNotes = useMemo(
+    () => sortedNotes.filter((note) => !note.isPinned),
+    [sortedNotes],
+  );
+
+  const pinnedJournals = useMemo(
+    () => sortedJournals.filter((entry) => entry.isPinned),
+    [sortedJournals],
+  );
+  const unpinnedJournals = useMemo(
+    () => sortedJournals.filter((entry) => !entry.isPinned),
+    [sortedJournals],
+  );
+
+  const pinnedTaskLists = useMemo(
+    () => taskLists.filter((list) => list.isPinned),
+    [taskLists],
+  );
+  const unpinnedTaskLists = useMemo(
+    () => taskLists.filter((list) => !list.isPinned),
+    [taskLists],
+  );
+
+  const toggleNotePinned = async (noteId: string) => {
+    const existing = notes.find((item) => item.id === noteId);
+    if (!existing) return;
+    const updated = { ...existing, isPinned: !existing.isPinned };
+    setNotes((prev) => prev.map((item) => (item.id === noteId ? updated : item)));
+    await saveNote(updated);
+  };
+
+  const toggleJournalPinned = async (entryId: string) => {
+    const existing = journals.find((item) => item.id === entryId);
+    if (!existing) return;
+    const updated = { ...existing, isPinned: !existing.isPinned };
+    setJournals((prev) => prev.map((item) => (item.id === entryId ? updated : item)));
+    await saveJournalEntry(updated);
+  };
+
+  const toggleTaskListPinned = async (listId: string) => {
+    const existing = taskLists.find((item) => item.id === listId);
+    if (!existing) return;
+    const updated = { ...existing, isPinned: !existing.isPinned };
+    setTaskLists((prev) => prev.map((item) => (item.id === listId ? updated : item)));
+    await saveTaskList(updated);
+  };
+
   return (
     <div
       className="flex min-h-full flex-col"
@@ -837,32 +892,88 @@ function PlannerViewInner() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {sortedNotes.map((note) => (
-                    <Link
-                      key={note.id}
-                      href={`/note/${note.id}`}
-                      className="flex items-center justify-between rounded-xl border-2 px-3 py-2.5"
-                      style={{
-                        backgroundColor: theme.surface,
-                        borderColor: theme.border,
-                      }}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold">{note.title || "Untitled note"}</p>
-                        <p
-                          className="mt-1 line-clamp-2 text-sm"
-                          style={{ color: theme.textSecondary }}
+                  {pinnedNotes.length > 0 && (
+                    <>
+                      <p className="px-1 text-xs font-bold uppercase tracking-wide" style={{ color: theme.textSecondary }}>
+                        Pinned
+                      </p>
+                      {pinnedNotes.map((note) => (
+                        <div
+                          key={note.id}
+                          className="flex items-center gap-2 rounded-xl border-2 px-3 py-2.5"
+                          style={{
+                            backgroundColor: theme.surface,
+                            borderColor: theme.border,
+                          }}
                         >
-                          {note.content?.trim() || "No preview available yet."}
+                          <Link href={`/note/${note.id}`} className="min-w-0 flex-1">
+                            <p className="truncate font-semibold">{note.title || "Untitled note"}</p>
+                            <p
+                              className="mt-1 line-clamp-2 text-sm"
+                              style={{ color: theme.textSecondary }}
+                            >
+                              {note.content?.trim() || "No preview available yet."}
+                            </p>
+                            <p className="mt-1 text-xs" style={{ color: theme.textSecondary }}>
+                              {new Date(note.updatedAt || note.createdAt).toLocaleString()}
+                              {note.images?.length ? ` · ${note.images.length} image${note.images.length === 1 ? "" : "s"}` : ""}
+                            </p>
+                          </Link>
+                          <button
+                            type="button"
+                            className="shrink-0 rounded-lg p-1.5"
+                            style={{ color: theme.primary }}
+                            onClick={() => void toggleNotePinned(note.id)}
+                            aria-label="Unpin note"
+                          >
+                            <PinOff className="size-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                  {unpinnedNotes.length > 0 && (
+                    <>
+                      {pinnedNotes.length > 0 ? (
+                        <p className="px-1 pt-1 text-xs font-bold uppercase tracking-wide" style={{ color: theme.textSecondary }}>
+                          Notes
                         </p>
-                        <p className="mt-1 text-xs" style={{ color: theme.textSecondary }}>
-                          {new Date(note.updatedAt || note.createdAt).toLocaleString()}
-                          {note.images?.length ? ` · ${note.images.length} image${note.images.length === 1 ? "" : "s"}` : ""}
-                        </p>
-                      </div>
-                      <span style={{ color: theme.primary }}>›</span>
-                    </Link>
-                  ))}
+                      ) : null}
+                      {unpinnedNotes.map((note) => (
+                        <div
+                          key={note.id}
+                          className="flex items-center gap-2 rounded-xl border-2 px-3 py-2.5"
+                          style={{
+                            backgroundColor: theme.surface,
+                            borderColor: theme.border,
+                          }}
+                        >
+                          <Link href={`/note/${note.id}`} className="min-w-0 flex-1">
+                            <p className="truncate font-semibold">{note.title || "Untitled note"}</p>
+                            <p
+                              className="mt-1 line-clamp-2 text-sm"
+                              style={{ color: theme.textSecondary }}
+                            >
+                              {note.content?.trim() || "No preview available yet."}
+                            </p>
+                            <p className="mt-1 text-xs" style={{ color: theme.textSecondary }}>
+                              {new Date(note.updatedAt || note.createdAt).toLocaleString()}
+                              {note.images?.length ? ` · ${note.images.length} image${note.images.length === 1 ? "" : "s"}` : ""}
+                            </p>
+                          </Link>
+                          <button
+                            type="button"
+                            className="shrink-0 rounded-lg p-1.5"
+                            style={{ color: theme.textSecondary }}
+                            onClick={() => void toggleNotePinned(note.id)}
+                            aria-label="Pin note"
+                          >
+                            <Pin className="size-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
               )}
             </>
@@ -893,32 +1004,88 @@ function PlannerViewInner() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {sortedJournals.map((entry) => (
-                    <Link
-                      key={entry.id}
-                      href={`/journal/${entry.id}`}
-                      className="flex items-center justify-between rounded-xl border-2 px-3 py-2.5"
-                      style={{
-                        backgroundColor: theme.surface,
-                        borderColor: theme.border,
-                      }}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold">{entry.title || "Untitled journal entry"}</p>
-                        <p
-                          className="mt-1 line-clamp-2 text-sm italic"
-                          style={{ color: theme.textSecondary }}
+                  {pinnedJournals.length > 0 && (
+                    <>
+                      <p className="px-1 text-xs font-bold uppercase tracking-wide" style={{ color: theme.textSecondary }}>
+                        Pinned
+                      </p>
+                      {pinnedJournals.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className="flex items-center gap-2 rounded-xl border-2 px-3 py-2.5"
+                          style={{
+                            backgroundColor: theme.surface,
+                            borderColor: theme.border,
+                          }}
                         >
-                          {entry.content?.trim() || "No preview available yet."}
+                          <Link href={`/journal/${entry.id}`} className="min-w-0 flex-1">
+                            <p className="truncate font-semibold">{entry.title || "Untitled journal entry"}</p>
+                            <p
+                              className="mt-1 line-clamp-2 text-sm italic"
+                              style={{ color: theme.textSecondary }}
+                            >
+                              {entry.content?.trim() || "No preview available yet."}
+                            </p>
+                            <p className="mt-1 text-xs" style={{ color: theme.textSecondary }}>
+                              {new Date(entry.updatedAt || entry.createdAt).toLocaleString()}
+                              {entry.images?.length ? ` · ${entry.images.length} image${entry.images.length === 1 ? "" : "s"}` : ""}
+                            </p>
+                          </Link>
+                          <button
+                            type="button"
+                            className="shrink-0 rounded-lg p-1.5"
+                            style={{ color: theme.primary }}
+                            onClick={() => void toggleJournalPinned(entry.id)}
+                            aria-label="Unpin journal entry"
+                          >
+                            <PinOff className="size-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                  {unpinnedJournals.length > 0 && (
+                    <>
+                      {pinnedJournals.length > 0 ? (
+                        <p className="px-1 pt-1 text-xs font-bold uppercase tracking-wide" style={{ color: theme.textSecondary }}>
+                          Journals
                         </p>
-                        <p className="mt-1 text-xs" style={{ color: theme.textSecondary }}>
-                          {new Date(entry.updatedAt || entry.createdAt).toLocaleString()}
-                          {entry.images?.length ? ` · ${entry.images.length} image${entry.images.length === 1 ? "" : "s"}` : ""}
-                        </p>
-                      </div>
-                      <span style={{ color: theme.primary }}>›</span>
-                    </Link>
-                  ))}
+                      ) : null}
+                      {unpinnedJournals.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className="flex items-center gap-2 rounded-xl border-2 px-3 py-2.5"
+                          style={{
+                            backgroundColor: theme.surface,
+                            borderColor: theme.border,
+                          }}
+                        >
+                          <Link href={`/journal/${entry.id}`} className="min-w-0 flex-1">
+                            <p className="truncate font-semibold">{entry.title || "Untitled journal entry"}</p>
+                            <p
+                              className="mt-1 line-clamp-2 text-sm italic"
+                              style={{ color: theme.textSecondary }}
+                            >
+                              {entry.content?.trim() || "No preview available yet."}
+                            </p>
+                            <p className="mt-1 text-xs" style={{ color: theme.textSecondary }}>
+                              {new Date(entry.updatedAt || entry.createdAt).toLocaleString()}
+                              {entry.images?.length ? ` · ${entry.images.length} image${entry.images.length === 1 ? "" : "s"}` : ""}
+                            </p>
+                          </Link>
+                          <button
+                            type="button"
+                            className="shrink-0 rounded-lg p-1.5"
+                            style={{ color: theme.textSecondary }}
+                            onClick={() => void toggleJournalPinned(entry.id)}
+                            aria-label="Pin journal entry"
+                          >
+                            <Pin className="size-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
               )}
             </>
@@ -937,7 +1104,7 @@ function PlannerViewInner() {
                   <p className="mt-2 font-bold">No task lists</p>
                 </div>
               ) : (
-                taskLists.map((taskList) => (
+                [...pinnedTaskLists, ...unpinnedTaskLists].map((taskList, index) => (
                   (() => {
                     const orderedTasks = [
                       ...taskList.tasks.filter((t) => !t.done),
@@ -947,28 +1114,53 @@ function PlannerViewInner() {
                     const remainingCount = Math.max(0, orderedTasks.length - visibleTasks.length);
                     const completedCount = taskList.tasks.filter((t) => t.done).length;
                     return (
-                      <div
-                        key={String(taskList.id)}
-                        className="rounded-2xl border-2 p-4"
-                        style={{
-                          backgroundColor: theme.card,
-                          borderColor: theme.border,
-                        }}
-                      >
+                      <div key={String(taskList.id)}>
+                        {index === 0 && pinnedTaskLists.length > 0 && (
+                          <p className="mb-2 px-1 text-xs font-bold uppercase tracking-wide" style={{ color: theme.textSecondary }}>
+                            Pinned
+                          </p>
+                        )}
+                        {index === pinnedTaskLists.length && unpinnedTaskLists.length > 0 && pinnedTaskLists.length > 0 && (
+                          <p className="mb-2 mt-1 px-1 text-xs font-bold uppercase tracking-wide" style={{ color: theme.textSecondary }}>
+                            Task lists
+                          </p>
+                        )}
+                        <div
+                          className="rounded-2xl border-2 p-4"
+                          style={{
+                            backgroundColor: theme.card,
+                            borderColor: theme.border,
+                          }}
+                        >
                         <div className="flex items-start justify-between gap-2">
                           <p className="font-bold">
                             {taskList.title?.trim() || `Task list #${taskList.id}`}
                           </p>
-                          <button
-                            type="button"
-                            className="shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white"
-                            style={{ backgroundColor: theme.primary }}
-                            onClick={() =>
-                              router.push(`/task/${taskList.id}`)
-                            }
-                          >
-                            Open
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              className="shrink-0 rounded-lg p-1.5"
+                              style={{
+                                color: taskList.isPinned ? theme.primary : theme.textSecondary,
+                              }}
+                              onClick={() =>
+                                taskList.id && void toggleTaskListPinned(taskList.id)
+                              }
+                              aria-label={taskList.isPinned ? "Unpin task list" : "Pin task list"}
+                            >
+                              {taskList.isPinned ? <PinOff className="size-4" /> : <Pin className="size-4" />}
+                            </button>
+                            <button
+                              type="button"
+                              className="shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white"
+                              style={{ backgroundColor: theme.primary }}
+                              onClick={() =>
+                                router.push(`/task/${taskList.id}`)
+                              }
+                            >
+                              Open
+                            </button>
+                          </div>
                         </div>
                         <p className="text-xs" style={{ color: theme.textSecondary }}>
                           {taskList.tasks.length} task(s)
@@ -1000,6 +1192,14 @@ function PlannerViewInner() {
                             >
                               {task.content || "Empty task"}
                             </span>
+                            {task.deadline ? (
+                              <span
+                                className="ml-1 text-xs"
+                                style={{ color: theme.textSecondary }}
+                              >
+                                ({new Date(`${task.deadline}T00:00:00`).toLocaleDateString()})
+                              </span>
+                            ) : null}
                           </div>
                         ))}
                         {remainingCount > 0 ? (
@@ -1007,6 +1207,7 @@ function PlannerViewInner() {
                             +{remainingCount} other{remainingCount === 1 ? "" : "s"} in the list
                           </p>
                         ) : null}
+                        </div>
                       </div>
                     );
                   })()

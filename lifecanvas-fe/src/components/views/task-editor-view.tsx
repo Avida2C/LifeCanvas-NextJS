@@ -17,7 +17,7 @@ function TaskEditorInner() {
   const [title, setTitle] = useState("");
   const [taskList, setTaskList] = useState<TaskList>({
     id: null,
-    tasks: [{ id: 0, content: "", done: false }],
+    tasks: [{ id: 0, content: "", done: false, deadline: "" }],
   });
   const [loading, setLoading] = useState(false);
 
@@ -37,7 +37,7 @@ function TaskEditorInner() {
       taskList.tasks.length > 0
         ? Math.max(...taskList.tasks.map((t) => t.id))
         : -1;
-    const newTask: SubTask = { id: lastId + 1, content: "", done: false };
+    const newTask: SubTask = { id: lastId + 1, content: "", done: false, deadline: "" };
     setTaskList({ ...taskList, tasks: [...taskList.tasks, newTask] });
   };
 
@@ -46,7 +46,9 @@ function TaskEditorInner() {
     setTaskList({
       ...taskList,
       tasks:
-        filtered.length === 0 ? [{ id: 0, content: "", done: false }] : filtered,
+        filtered.length === 0
+          ? [{ id: 0, content: "", done: false, deadline: "" }]
+          : filtered,
     });
   };
 
@@ -64,6 +66,15 @@ function TaskEditorInner() {
       ...taskList,
       tasks: taskList.tasks.map((t) =>
         t.id === taskId ? { ...t, done: !t.done } : t,
+      ),
+    });
+  };
+
+  const updateDeadline = (taskId: number, deadline: string) => {
+    setTaskList({
+      ...taskList,
+      tasks: taskList.tasks.map((t) =>
+        t.id === taskId ? { ...t, deadline: deadline || undefined } : t,
       ),
     });
   };
@@ -135,17 +146,40 @@ function TaskEditorInner() {
                 onChange={() => toggleDone(task.id)}
                 className="mt-2"
               />
-              <input
-                value={task.content}
-                onChange={(e) => updateContent(task.id, e.target.value)}
-                placeholder="Task"
-                className="min-w-0 flex-1 rounded-lg border-2 px-3 py-2"
-                style={{
-                  borderColor: theme.border,
-                  backgroundColor: theme.surface,
-                  color: theme.text,
-                }}
-              />
+              <div className="min-w-0 flex-1 space-y-2">
+                <input
+                  value={task.content}
+                  onChange={(e) => updateContent(task.id, e.target.value)}
+                  placeholder="Task"
+                  className="w-full rounded-lg border-2 px-3 py-2"
+                  style={{
+                    borderColor: theme.border,
+                    backgroundColor: theme.surface,
+                    color: theme.text,
+                  }}
+                />
+                <div className="flex items-center gap-2">
+                  <label
+                    className="shrink-0 text-xs font-semibold"
+                    style={{ color: theme.textSecondary }}
+                    htmlFor={`task-deadline-${task.id}`}
+                  >
+                    Deadline
+                  </label>
+                  <input
+                    id={`task-deadline-${task.id}`}
+                    type="date"
+                    value={task.deadline || ""}
+                    onChange={(e) => updateDeadline(task.id, e.target.value)}
+                    className="min-w-0 flex-1 rounded-lg border-2 px-3 py-1.5 text-sm"
+                    style={{
+                      borderColor: theme.border,
+                      backgroundColor: theme.surface,
+                      color: theme.text,
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         ))}
